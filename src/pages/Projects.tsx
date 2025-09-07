@@ -2,19 +2,20 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useProjectContext } from "@/context/ProjectContext";
-import { useSession } from "@/context/SessionContext"; // Importar useSession
+import { useSession } from "@/context/SessionContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton"; // Importar Skeleton
 
 const Projects = () => {
-  const { projects, addProject } = useProjectContext();
-  const { session, isLoading, signOut } = useSession();
+  const { projects, addProject, isLoadingProjects } = useProjectContext();
+  const { session, isLoading: isLoadingSession, signOut } = useSession();
 
-  if (isLoading) {
+  if (isLoadingSession || isLoadingProjects) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando...</p>
+        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando proyectos...</p>
       </div>
     );
   }

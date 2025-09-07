@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/context/SessionContext";
+import { showSuccess, showError } from "@/utils/toast";
 
 // Define las interfaces para Nota y Tarea
 interface Note {
@@ -18,12 +21,14 @@ interface Task {
 // Define la interfaz para Proyecto, incluyendo notas y tareas
 export interface Project {
   id: string;
+  user_id: string; // Añadir user_id para vincular con el usuario autenticado
   name: string;
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
   dueDate?: string;
   notes: Note[];
   tasks: Task[];
+  created_at: string;
 }
 
 // Define el esquema para añadir un nuevo proyecto (sin ID, notas ni tareas)
@@ -42,175 +47,259 @@ export const ProjectFormSchema = z.object({
 
 interface ProjectContextType {
   projects: Project[];
-  addProject: (projectData: z.infer<typeof ProjectFormSchema>) => void;
-  updateProject: (projectId: string, updatedFields: Partial<Project>) => void;
-  deleteProject: (projectId: string) => void;
-  addNoteToProject: (projectId: string, content: string) => void;
-  deleteNoteFromProject: (projectId: string, noteId: string) => void;
-  addTaskToProject: (projectId: string, description: string) => void;
-  toggleTaskCompletion: (projectId: string, taskId: string) => void;
-  deleteTaskFromProject: (projectId: string, taskId: string) => void;
+  isLoadingProjects: boolean;
+  addProject: (projectData: z.infer<typeof ProjectFormSchema>) => Promise<void>;
+  updateProject: (projectId: string, updatedFields: Partial<Project>) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
+  addNoteToProject: (projectId: string, content: string) => Promise<void>;
+  deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
+  addTaskToProject: (projectId: string, description: string) => Promise<void>;
+  toggleTaskCompletion: (projectId: string, taskId: string) => Promise<void>;
+  deleteTaskFromProject: (projectId: string, taskId: string) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = "project_manager_projects";
-
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
-  const [projects, setProjects] = useState<Project[]>(() => {
-    // Cargar proyectos desde localStorage al iniciar
-    const savedProjects = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedProjects) {
-      return JSON.parse(savedProjects);
+  const { user, isLoading: isLoadingSession } = useSession();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+
+  const fetchProjects = useCallback(async () => {
+    if (!user) {
+      setProjects([]);
+      setIsLoadingProjects(false);
+      return;
     }
-    // Datos iniciales si no hay nada en localStorage
-    return [
-      {
-        id: "1",
-        name: "Rediseño de Portafolio Personal",
-        description: "Actualizar el portafolio con los últimos trabajos y una nueva estética.",
-        status: "in-progress",
-        dueDate: "2024-12-31",
-        notes: [
-          { id: "n1", content: "Investigar nuevas tendencias de diseño UI/UX.", createdAt: new Date().toISOString() },
-          { id: "n2", content: "Revisar feedback del cliente sobre la paleta de colores.", createdAt: new Date().toISOString() },
-        ],
-        tasks: [
-          { id: "t1", description: "Crear wireframes para la nueva sección 'Acerca de'.", completed: false, createdAt: new Date().toISOString() },
-          { id: "t2", description: "Seleccionar 3 fuentes principales para el sitio.", completed: true, createdAt: new Date().toISOString() },
-        ],
-      },
-      {
-        id: "2",
-        name: "Página Web para Cliente X",
-        description: "Desarrollo de un sitio web e-commerce para una tienda de ropa.",
-        status: "pending",
-        dueDate: "2025-01-15",
-        notes: [],
-        tasks: [
-          { id: "t3", description: "Definir estructura de base de datos para productos.", completed: false, createdAt: new Date().toISOString() },
-        ],
-      },
-      {
-        id: "3",
-        name: "Diseño de Logotipo para Startup",
-        description: "Creación de identidad visual y logotipo para una nueva empresa de tecnología.",
-        status: "completed",
-        dueDate: "2024-08-01",
-        notes: [
-          { id: "n3", content: "Enviar propuestas finales de logotipo al cliente.", createdAt: new Date().toISOString() },
-        ],
-        tasks: [
-          { id: "t4", description: "Preparar archivos vectoriales para entrega.", completed: true, createdAt: new Date().toISOString() },
-        ],
-      },
-    ];
-  });
 
-  // Guardar proyectos en localStorage cada vez que cambian
+    setIsLoadingProjects(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching projects:", error);
+      showError("Error al cargar los proyectos.");
+      setProjects([]);
+    } else {
+      setProjects(data as Project[]);
+    }
+    setIsLoadingProjects(false);
+  }, [user]);
+
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
-  }, [projects]);
+    if (!isLoadingSession) {
+      fetchProjects();
+    }
+  }, [isLoadingSession, fetchProjects]);
 
-  const addProject = (projectData: z.infer<typeof ProjectFormSchema>) => {
-    const newProject: Project = {
-      id: String(projects.length > 0 ? Math.max(...projects.map(p => parseInt(p.id))) + 1 : 1),
-      ...projectData,
-      notes: [],
-      tasks: [],
-    };
-    setProjects((prev) => [...prev, newProject]);
+  const addProject = async (projectData: z.infer<typeof ProjectFormSchema>) => {
+    if (!user) {
+      showError("Debes iniciar sesión para añadir proyectos.");
+      return;
+    }
+    try {
+      const newProject: Omit<Project, "id" | "created_at"> = {
+        user_id: user.id,
+        ...projectData,
+        notes: [],
+        tasks: [],
+      };
+      const { data, error } = await supabase
+        .from("projects")
+        .insert(newProject)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProjects((prev) => [data as Project, ...prev]);
+      showSuccess("Proyecto añadido exitosamente.");
+    } catch (error: any) {
+      showError("Error al añadir el proyecto: " + error.message);
+      console.error("Error adding project:", error);
+    }
   };
 
-  const updateProject = (projectId: string, updatedFields: Partial<Project>) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId ? { ...project, ...updatedFields } : project
-      )
-    );
+  const updateProject = async (projectId: string, updatedFields: Partial<Project>) => {
+    if (!user) {
+      showError("Debes iniciar sesión para actualizar proyectos.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update(updatedFields)
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId ? { ...project, ...updatedFields } : project
+        )
+      );
+      showSuccess("Proyecto actualizado exitosamente.");
+    } catch (error: any) {
+      showError("Error al actualizar el proyecto: " + error.message);
+      console.error("Error updating project:", error);
+    }
   };
 
-  const deleteProject = (projectId: string) => {
-    setProjects((prev) => prev.filter((project) => project.id !== projectId));
+  const deleteProject = async (projectId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para eliminar proyectos.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setProjects((prev) => prev.filter((project) => project.id !== projectId));
+      showSuccess("Proyecto eliminado exitosamente.");
+    } catch (error: any) {
+      showError("Error al eliminar el proyecto: " + error.message);
+      console.error("Error deleting project:", error);
+    }
   };
 
-  const addNoteToProject = (projectId: string, content: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              notes: [
-                ...project.notes,
-                { id: Date.now().toString(), content, createdAt: new Date().toISOString() },
-              ],
-            }
-          : project
-      )
-    );
+  const addNoteToProject = async (projectId: string, content: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para añadir notas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const newNote = { id: Date.now().toString(), content, createdAt: new Date().toISOString() };
+      const updatedNotes = [...project.notes, newNote];
+
+      await updateProject(projectId, { notes: updatedNotes });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, notes: updatedNotes } : p
+        )
+      );
+      showSuccess("Nota añadida.");
+    } catch (error: any) {
+      showError("Error al añadir la nota: " + error.message);
+      console.error("Error adding note:", error);
+    }
   };
 
-  const deleteNoteFromProject = (projectId: string, noteId: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              notes: project.notes.filter((note) => note.id !== noteId),
-            }
-          : project
-      )
-    );
+  const deleteNoteFromProject = async (projectId: string, noteId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para eliminar notas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedNotes = project.notes.filter((note) => note.id !== noteId);
+
+      await updateProject(projectId, { notes: updatedNotes });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, notes: updatedNotes } : p
+        )
+      );
+      showSuccess("Nota eliminada.");
+    } catch (error: any) {
+      showError("Error al eliminar la nota: " + error.message);
+      console.error("Error deleting note:", error);
+    }
   };
 
-  const addTaskToProject = (projectId: string, description: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              tasks: [
-                ...project.tasks,
-                { id: Date.now().toString(), description, completed: false, createdAt: new Date().toISOString() },
-              ],
-            }
-          : project
-      )
-    );
+  const addTaskToProject = async (projectId: string, description: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para añadir tareas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const newTask = { id: Date.now().toString(), description, completed: false, createdAt: new Date().toISOString() };
+      const updatedTasks = [...project.tasks, newTask];
+
+      await updateProject(projectId, { tasks: updatedTasks });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      showSuccess("Tarea añadida.");
+    } catch (error: any) {
+      showError("Error al añadir la tarea: " + error.message);
+      console.error("Error adding task:", error);
+    }
   };
 
-  const toggleTaskCompletion = (projectId: string, taskId: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              tasks: project.tasks.map((task) =>
-                task.id === taskId ? { ...task, completed: !task.completed } : task
-              ),
-            }
-          : project
-      )
-    );
+  const toggleTaskCompletion = async (projectId: string, taskId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para actualizar tareas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedTasks = project.tasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      );
+
+      await updateProject(projectId, { tasks: updatedTasks });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      showSuccess("Estado de tarea actualizado.");
+    } catch (error: any) {
+      showError("Error al actualizar la tarea: " + error.message);
+      console.error("Error toggling task completion:", error);
+    }
   };
 
-  const deleteTaskFromProject = (projectId: string, taskId: string) => {
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === projectId
-          ? {
-              ...project,
-              tasks: project.tasks.filter((task) => task.id !== taskId),
-            }
-          : project
-      )
-    );
+  const deleteTaskFromProject = async (projectId: string, taskId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para eliminar tareas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
+
+      await updateProject(projectId, { tasks: updatedTasks });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      showSuccess("Tarea eliminada.");
+    } catch (error: any) {
+      showError("Error al eliminar la tarea: " + error.message);
+      console.error("Error deleting task:", error);
+    }
   };
 
   return (
     <ProjectContext.Provider
       value={{
         projects,
+        isLoadingProjects,
         addProject,
         updateProject,
         deleteProject,

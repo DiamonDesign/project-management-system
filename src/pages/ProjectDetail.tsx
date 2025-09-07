@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { showSuccess, showError } from "@/utils/toast";
-import { useSession } from "@/context/SessionContext"; // Importar useSession
+import { useSession } from "@/context/SessionContext";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -38,14 +38,14 @@ const getStatusVariant = (status: string) => {
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { projects, updateProject, deleteProject } = useProjectContext();
-  const { session, isLoading } = useSession(); // Usar useSession
+  const { projects, updateProject, deleteProject, isLoadingProjects } = useProjectContext();
+  const { session, isLoading: isLoadingSession } = useSession();
   const project = projects.find((p) => p.id === id);
 
-  if (isLoading) {
+  if (isLoadingSession || isLoadingProjects) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando...</p>
+        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando detalles del proyecto...</p>
       </div>
     );
   }
@@ -54,10 +54,9 @@ const ProjectDetail = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (project) {
-      deleteProject(project.id);
-      showSuccess("Proyecto eliminado exitosamente.");
+      await deleteProject(project.id);
       navigate("/projects");
     } else {
       showError("Error al eliminar el proyecto.");
