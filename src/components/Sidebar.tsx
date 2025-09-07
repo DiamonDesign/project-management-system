@@ -17,9 +17,9 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
   const navItems = [
     {
       name: "Inicio",
-      href: "/",
+      href: "/dashboard", // Cambiado a /dashboard
       icon: Home,
-      requiresAuth: false,
+      requiresAuth: true, // Ahora requiere autenticación
     },
     {
       name: "Proyectos",
@@ -43,13 +43,12 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border", // Cambiado a h-screen para asegurar altura completa
+        "flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
         isMobile ? "w-64 p-4" : "w-64 p-4"
       )}
     >
       <div className="flex items-center justify-center h-16 border-b border-sidebar-border mb-6">
-        {/* Logo simple */}
-        <Link to="/" className="text-2xl font-bold text-sidebar-primary-foreground flex items-center gap-2">
+        <Link to="/dashboard" className="text-2xl font-bold text-sidebar-primary-foreground flex items-center gap-2"> {/* Enlace del logo al dashboard */}
           <Briefcase className="h-7 w-7 text-sidebar-primary-foreground" />
           FreelanceFlow
         </Link>

@@ -5,12 +5,12 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { useSession } from "@/context/SessionContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton"; // Importar Skeleton
+import { LogOut } from "lucide-react"; // Mantener la importación si se usa en otro lugar, pero no para el botón
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Projects = () => {
   const { projects, addProject, isLoadingProjects } = useProjectContext();
-  const { session, isLoading: isLoadingSession, signOut } = useSession();
+  const { session, isLoading: isLoadingSession } = useSession(); // signOut ya no se usa directamente aquí
 
   if (isLoadingSession || isLoadingProjects) {
     return (
@@ -30,9 +30,7 @@ const Projects = () => {
         <h1 className="text-3xl font-bold">Mis Proyectos</h1>
         <div className="flex items-center space-x-4">
           <AddProjectDialog onAddProject={addProject} />
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" /> Cerrar Sesión
-          </Button>
+          {/* Botón de Cerrar Sesión eliminado de aquí */}
         </div>
       </div>
       {projects.length === 0 ? (

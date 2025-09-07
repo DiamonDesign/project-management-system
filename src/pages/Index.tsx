@@ -1,7 +1,7 @@
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Button } from "@/components/ui/button";
 import { Link, Navigate } from "react-router-dom";
-import { useSession } from "@/context/SessionContext"; // Importar useSession
+import { useSession } from "@/context/SessionContext";
 
 const Index = () => {
   const { session, isLoading } = useSession();
@@ -15,7 +15,7 @@ const Index = () => {
   }
 
   if (session) {
-    return <Navigate to="/projects" replace />;
+    return <Navigate to="/dashboard" replace />; {/* Redirigir a /dashboard */}
   }
 
   return (
