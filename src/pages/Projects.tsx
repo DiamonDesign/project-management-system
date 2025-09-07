@@ -2,15 +2,37 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useProjectContext } from "@/context/ProjectContext";
+import { useSession } from "@/context/SessionContext"; // Importar useSession
+import { Navigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 const Projects = () => {
   const { projects, addProject } = useProjectContext();
+  const { session, isLoading, signOut } = useSession();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Mis Proyectos</h1>
-        <AddProjectDialog onAddProject={addProject} />
+        <div className="flex items-center space-x-4">
+          <AddProjectDialog onAddProject={addProject} />
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="h-4 w-4 mr-2" /> Cerrar Sesión
+          </Button>
+        </div>
       </div>
       {projects.length === 0 ? (
         <p className="text-center text-muted-foreground">No hay proyectos aún. ¡Añade uno para empezar!</p>

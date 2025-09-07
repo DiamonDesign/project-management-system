@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useProjectContext } from "@/context/ProjectContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { showSuccess, showError } from "@/utils/toast";
+import { useSession } from "@/context/SessionContext"; // Importar useSession
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -38,7 +39,20 @@ const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, updateProject, deleteProject } = useProjectContext();
+  const { session, isLoading } = useSession(); // Usar useSession
   const project = projects.find((p) => p.id === id);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <p className="text-lg text-gray-600 dark:text-gray-400">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleDeleteProject = () => {
     if (project) {
