@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DraggableProvidedDraggableProps, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 
 interface TaskCardProps {
   task: Task;
@@ -19,9 +20,12 @@ interface TaskCardProps {
   onEdit: (taskId: string, newDescription: string) => void;
   onDelete: (taskId: string) => void;
   onUpdateStatus: (taskId: string, newStatus: Task["status"]) => void;
+  draggableProps?: DraggableProvidedDraggableProps;
+  dragHandleProps?: DraggableProvidedDragHandleProps;
+  innerRef?: (element: HTMLElement | null) => void;
 }
 
-export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: TaskCardProps) => {
+export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, draggableProps, dragHandleProps, innerRef }: TaskCardProps) => {
   const [editing, setEditing] = useState(false);
   const [editedDescription, setEditedDescription] = useState(task.description);
 
@@ -44,7 +48,12 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: 
   };
 
   return (
-    <Card className="mb-3 p-3">
+    <Card
+      className="mb-3 p-3"
+      ref={innerRef}
+      {...draggableProps}
+      {...dragHandleProps}
+    >
       <CardContent className="p-0 flex flex-col gap-2">
         {editing ? (
           <Input
