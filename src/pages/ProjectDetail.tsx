@@ -1,12 +1,26 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useProjectContext } from "@/context/ProjectContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { NotesSection } from "@/components/NotesSection";
 import { TasksSection } from "@/components/TasksSection";
 import { MadeWithDyad } from "@/components/made-with-dyad";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
+import { showSuccess, showError } from "@/utils/toast";
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -22,8 +36,19 @@ const getStatusVariant = (status: string) => {
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { projects } = useProjectContext();
+  const navigate = useNavigate();
+  const { projects, updateProject, deleteProject } = useProjectContext();
   const project = projects.find((p) => p.id === id);
+
+  const handleDeleteProject = () => {
+    if (project) {
+      deleteProject(project.id);
+      showSuccess("Proyecto eliminado exitosamente.");
+      navigate("/projects");
+    } else {
+      showError("Error al eliminar el proyecto.");
+    }
+  };
 
   if (!project) {
     return (
@@ -42,15 +67,46 @@ const ProjectDetail = () => {
     );
   }
 
+  const completedTasks = project.tasks.filter(task => task.completed).length;
+  const totalTasks = project.tasks.length;
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
   return (
     <div className="container mx-auto p-4">
-      <div className="flex items-center mb-6">
-        <Link to="/projects">
-          <Button variant="ghost" size="icon" className="mr-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold">{project.name}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Link to="/projects">
+            <Button variant="ghost" size="icon" className="mr-2">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">{project.name}</h1>
+        </div>
+        <div className="flex space-x-2">
+          <EditProjectDialog project={project} onUpdateProject={updateProject} />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción no se puede deshacer. Esto eliminará permanentemente tu proyecto
+                  y removerá sus datos de nuestros servidores.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -68,6 +124,12 @@ const ProjectDetail = () => {
             <span className="text-sm text-muted-foreground">
               Fecha límite: {project.dueDate}
             </span>
+          )}
+          {totalTasks > 0 && (
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Progress value={progressPercentage} className="w-[150px]" />
+              <span className="text-sm text-muted-foreground">{Math.round(progressPercentage)}% completado</span>
+            </div>
           )}
         </CardContent>
       </Card>

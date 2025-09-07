@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { z } from "zod";
 
 // Define las interfaces para Nota y Tarea
@@ -16,7 +16,7 @@ interface Task {
 }
 
 // Define la interfaz para Proyecto, incluyendo notas y tareas
-interface Project {
+export interface Project {
   id: string;
   name: string;
   description: string;
@@ -27,7 +27,7 @@ interface Project {
 }
 
 // Define el esquema para añadir un nuevo proyecto (sin ID, notas ni tareas)
-const AddProjectSchema = z.object({
+export const ProjectFormSchema = z.object({
   name: z.string().min(2, {
     message: "El nombre del proyecto debe tener al menos 2 caracteres.",
   }),
@@ -37,13 +37,14 @@ const AddProjectSchema = z.object({
   status: z.enum(["pending", "in-progress", "completed"], {
     required_error: "Por favor, selecciona un estado para el proyecto.",
   }),
-  dueDate: z.string().optional(),
+  dueDate: z.string().optional().nullable(), // Permitir null para opcional
 });
 
 interface ProjectContextType {
   projects: Project[];
-  addProject: (projectData: z.infer<typeof AddProjectSchema>) => void;
+  addProject: (projectData: z.infer<typeof ProjectFormSchema>) => void;
   updateProject: (projectId: string, updatedFields: Partial<Project>) => void;
+  deleteProject: (projectId: string) => void;
   addNoteToProject: (projectId: string, content: string) => void;
   deleteNoteFromProject: (projectId: string, noteId: string) => void;
   addTaskToProject: (projectId: string, description: string) => void;
@@ -53,50 +54,65 @@ interface ProjectContextType {
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-export const ProjectProvider = ({ children }: { children: ReactNode }) => {
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Rediseño de Portafolio Personal",
-      description: "Actualizar el portafolio con los últimos trabajos y una nueva estética.",
-      status: "in-progress",
-      dueDate: "2024-12-31",
-      notes: [
-        { id: "n1", content: "Investigar nuevas tendencias de diseño UI/UX.", createdAt: new Date().toISOString() },
-        { id: "n2", content: "Revisar feedback del cliente sobre la paleta de colores.", createdAt: new Date().toISOString() },
-      ],
-      tasks: [
-        { id: "t1", description: "Crear wireframes para la nueva sección 'Acerca de'.", completed: false, createdAt: new Date().toISOString() },
-        { id: "t2", description: "Seleccionar 3 fuentes principales para el sitio.", completed: true, createdAt: new Date().toISOString() },
-      ],
-    },
-    {
-      id: "2",
-      name: "Página Web para Cliente X",
-      description: "Desarrollo de un sitio web e-commerce para una tienda de ropa.",
-      status: "pending",
-      dueDate: "2025-01-15",
-      notes: [],
-      tasks: [
-        { id: "t3", description: "Definir estructura de base de datos para productos.", completed: false, createdAt: new Date().toISOString() },
-      ],
-    },
-    {
-      id: "3",
-      name: "Diseño de Logotipo para Startup",
-      description: "Creación de identidad visual y logotipo para una nueva empresa de tecnología.",
-      status: "completed",
-      dueDate: "2024-08-01",
-      notes: [
-        { id: "n3", content: "Enviar propuestas finales de logotipo al cliente.", createdAt: new Date().toISOString() },
-      ],
-      tasks: [
-        { id: "t4", description: "Preparar archivos vectoriales para entrega.", completed: true, createdAt: new Date().toISOString() },
-      ],
-    },
-  ]);
+const LOCAL_STORAGE_KEY = "project_manager_projects";
 
-  const addProject = (projectData: z.infer<typeof AddProjectSchema>) => {
+export const ProjectProvider = ({ children }: { children: ReactNode }) => {
+  const [projects, setProjects] = useState<Project[]>(() => {
+    // Cargar proyectos desde localStorage al iniciar
+    const savedProjects = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedProjects) {
+      return JSON.parse(savedProjects);
+    }
+    // Datos iniciales si no hay nada en localStorage
+    return [
+      {
+        id: "1",
+        name: "Rediseño de Portafolio Personal",
+        description: "Actualizar el portafolio con los últimos trabajos y una nueva estética.",
+        status: "in-progress",
+        dueDate: "2024-12-31",
+        notes: [
+          { id: "n1", content: "Investigar nuevas tendencias de diseño UI/UX.", createdAt: new Date().toISOString() },
+          { id: "n2", content: "Revisar feedback del cliente sobre la paleta de colores.", createdAt: new Date().toISOString() },
+        ],
+        tasks: [
+          { id: "t1", description: "Crear wireframes para la nueva sección 'Acerca de'.", completed: false, createdAt: new Date().toISOString() },
+          { id: "t2", description: "Seleccionar 3 fuentes principales para el sitio.", completed: true, createdAt: new Date().toISOString() },
+        ],
+      },
+      {
+        id: "2",
+        name: "Página Web para Cliente X",
+        description: "Desarrollo de un sitio web e-commerce para una tienda de ropa.",
+        status: "pending",
+        dueDate: "2025-01-15",
+        notes: [],
+        tasks: [
+          { id: "t3", description: "Definir estructura de base de datos para productos.", completed: false, createdAt: new Date().toISOString() },
+        ],
+      },
+      {
+        id: "3",
+        name: "Diseño de Logotipo para Startup",
+        description: "Creación de identidad visual y logotipo para una nueva empresa de tecnología.",
+        status: "completed",
+        dueDate: "2024-08-01",
+        notes: [
+          { id: "n3", content: "Enviar propuestas finales de logotipo al cliente.", createdAt: new Date().toISOString() },
+        ],
+        tasks: [
+          { id: "t4", description: "Preparar archivos vectoriales para entrega.", completed: true, createdAt: new Date().toISOString() },
+        ],
+      },
+    ];
+  });
+
+  // Guardar proyectos en localStorage cada vez que cambian
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
+  }, [projects]);
+
+  const addProject = (projectData: z.infer<typeof ProjectFormSchema>) => {
     const newProject: Project = {
       id: String(projects.length > 0 ? Math.max(...projects.map(p => parseInt(p.id))) + 1 : 1),
       ...projectData,
@@ -112,6 +128,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         project.id === projectId ? { ...project, ...updatedFields } : project
       )
     );
+  };
+
+  const deleteProject = (projectId: string) => {
+    setProjects((prev) => prev.filter((project) => project.id !== projectId));
   };
 
   const addNoteToProject = (projectId: string, content: string) => {
@@ -193,6 +213,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         projects,
         addProject,
         updateProject,
+        deleteProject,
         addNoteToProject,
         deleteNoteFromProject,
         addTaskToProject,

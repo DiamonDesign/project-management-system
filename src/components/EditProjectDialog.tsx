@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,55 +28,61 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Pencil } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { es } from "date-fns/locale"; // Importar el locale español
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { ProjectFormSchema } from "@/context/ProjectContext"; // Importar el esquema desde el contexto
+import { Project, ProjectFormSchema } from "@/context/ProjectContext";
 
-interface AddProjectDialogProps {
-  onAddProject: (project: z.infer<typeof ProjectFormSchema>) => void;
+interface EditProjectDialogProps {
+  project: Project;
+  onUpdateProject: (projectId: string, updatedFields: z.infer<typeof ProjectFormSchema>) => void;
 }
 
-export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
+export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialogProps) => {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      status: "pending",
-      dueDate: undefined, // Usar undefined para opcional
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      dueDate: project.dueDate || undefined,
     },
   });
 
+  useEffect(() => {
+    form.reset({
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      dueDate: project.dueDate || undefined,
+    });
+  }, [project, form]);
+
   const onSubmit = (values: z.infer<typeof ProjectFormSchema>) => {
     try {
-      onAddProject(values);
-      showSuccess("Proyecto añadido exitosamente.");
-      form.reset({
-        name: "",
-        description: "",
-        status: "pending",
-        dueDate: undefined,
-      });
+      onUpdateProject(project.id, values);
+      showSuccess("Proyecto actualizado exitosamente.");
       setOpen(false);
     } catch (error) {
-      showError("Error al añadir el proyecto.");
-      console.error("Error adding project:", error);
+      showError("Error al actualizar el proyecto.");
+      console.error("Error updating project:", error);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Añadir Nuevo Proyecto</Button>
+        <Button variant="outline" size="sm" className="ml-2">
+          <Pencil className="h-4 w-4 mr-2" /> Editar
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
+          <DialogTitle>Editar Proyecto</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -174,7 +180,7 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
               )}
             />
             <Button type="submit" className="w-full">
-              Guardar Proyecto
+              Guardar Cambios
             </Button>
           </form>
         </Form>
