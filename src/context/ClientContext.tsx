@@ -12,6 +12,8 @@ export interface Client {
   email?: string;
   phone?: string;
   company?: string;
+  address?: string; // Nuevo campo
+  cif?: string;     // Nuevo campo
   notes: { id: string; content: string; createdAt: string }[];
   created_at: string;
 }
@@ -24,6 +26,8 @@ export const ClientFormSchema = z.object({
   email: z.string().email("Formato de email inválido.").optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   company: z.string().optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")), // Nuevo campo
+  cif: z.string().optional().or(z.literal("")),     // Nuevo campo
 });
 
 interface ClientContextType {
@@ -77,14 +81,13 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const newClient: Omit<Client, "id" | "created_at"> = {
+      const newClient: Omit<Client, "id" | "created_at" | "notes"> = { // Omitir 'notes' también
         user_id: user.id,
         ...clientData,
-        notes: [],
       };
       const { data, error } = await supabase
         .from("clients")
-        .insert(newClient)
+        .insert({ ...newClient, notes: [] }) // Asegurar que notes se inicialice como array vacío
         .select()
         .single();
 
