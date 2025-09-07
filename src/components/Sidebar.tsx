@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Briefcase, LogOut, ListChecks } from "lucide-react"; // Importar ListChecks
+import { Home, Users, Briefcase, LogOut, ListChecks, Settings } from "lucide-react"; // Importar Settings
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/context/SessionContext";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
 
   const navItems = [
     {
-      name: "Inicio",
+      name: "Dashboard",
       href: "/dashboard",
       icon: Home,
       requiresAuth: true,
@@ -28,15 +28,15 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       requiresAuth: true,
     },
     {
-      name: "Clientes",
-      href: "/clients",
-      icon: Users,
+      name: "Tareas",
+      href: "/tasks",
+      icon: ListChecks,
       requiresAuth: true,
     },
     {
-      name: "Tareas", // Nuevo elemento de navegación
-      href: "/tasks",
-      icon: ListChecks, // Icono para tareas
+      name: "Clientes",
+      href: "/clients",
+      icon: Users,
       requiresAuth: true,
     },
   ];
@@ -76,6 +76,17 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
         ))}
       </nav>
       <div className="mt-auto pt-4 border-t border-sidebar-border">
+        <Link
+          to="/profile" // Enlace a la página de perfil/ajustes
+          onClick={onClose}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground mb-2",
+            location.pathname === "/profile" && "bg-sidebar-accent text-sidebar-accent-foreground"
+          )}
+        >
+          <Settings className="h-5 w-5" />
+          Ajustes de Usuario
+        </Link>
         <Button
           variant="ghost"
           className="w-full justify-start text-destructive hover:bg-destructive/10"

@@ -10,11 +10,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Briefcase, Users, CheckCircle, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge"; // Importar el componente Badge
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // Importar Button
+import { AddProjectDialog } from "@/components/AddProjectDialog"; // Importar AddProjectDialog
+import { AddTaskDialog } from "@/components/AddTaskDialog"; // Importar AddTaskDialog
 
 const Dashboard = () => {
   const { session, isLoading: isLoadingSession } = useSession();
-  const { projects, isLoadingProjects } = useProjectContext();
+  const { projects, addProject, isLoadingProjects } = useProjectContext(); // Obtener addProject
   const { clients, isLoadingClients } = useClientContext();
   const [date, setDate] = useState<Date | undefined>(new Date());
 
@@ -41,7 +44,13 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Dashboard de Freelance</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dashboard de Freelance</h1>
+        <div className="flex space-x-2">
+          <AddProjectDialog onAddProject={addProject} />
+          <AddTaskDialog />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <Card>
