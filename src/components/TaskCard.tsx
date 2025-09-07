@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +18,7 @@ interface TaskCardProps {
   projectId: string;
   onEdit: (taskId: string, newDescription: string) => void;
   onDelete: (taskId: string) => void;
-  onUpdateStatus: (taskId: string, newStatus: Task['status']) => void;
+  onUpdateStatus: (taskId: string, newStatus: Task["status"]) => void;
 }
 
 export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: TaskCardProps) => {
@@ -41,6 +39,10 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: 
     setEditedDescription(task.description);
   };
 
+  const handleStatusChange = (value: Task["status"]) => {
+    onUpdateStatus(task.id, value);
+  };
+
   return (
     <Card className="mb-3 p-3">
       <CardContent className="p-0 flex flex-col gap-2">
@@ -48,20 +50,18 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: 
           <Input
             value={editedDescription}
             onChange={(e) => setEditedDescription(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSave();
-              }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
             }}
             className="flex-1"
           />
         ) : (
-          <span className={`flex-1 text-sm ${task.status === 'completed' ? "line-through text-muted-foreground" : ""}`}>
+          <span className={`flex-1 text-sm ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
             {task.description}
           </span>
         )}
         <div className="flex items-center justify-between mt-2">
-          <Select onValueChange={(value: Task['status']) => onUpdateStatus(task.id, value)} value={task.status}>
+          <Select onValueChange={handleStatusChange} value={task.status}>
             <SelectTrigger className="w-[120px] h-8 text-xs">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -90,8 +90,8 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus }: 
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
     </Card>
   );
 };
