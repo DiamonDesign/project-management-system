@@ -91,6 +91,7 @@ const ClientPortalDashboard = () => {
           status: task.status || (task.completed ? 'completed' : 'not-started'),
           start_date: task.start_date,
           end_date: task.end_date,
+          is_daily_task: task.is_daily_task || false, // Asegurar que is_daily_task esté presente
         }))
       }));
       setClientProjects(projectsWithNormalizedData as Project[]);

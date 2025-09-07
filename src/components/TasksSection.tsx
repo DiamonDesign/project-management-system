@@ -70,15 +70,6 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
   const inProgressTasks = project.tasks.filter(task => task.status === 'in-progress');
   const completedTasks = project.tasks.filter(task => task.status === 'completed');
 
-  const getTasksForStatus = (status: Task['status']) => {
-    switch (status) {
-      case 'not-started': return notStartedTasks;
-      case 'in-progress': return inProgressTasks;
-      case 'completed': return completedTasks;
-      default: return [];
-    }
-  };
-
   const renderColumn = (status: Task['status'], title: string, tasks: Task[], bgColor: string, textColor: string) => (
     <Droppable droppableId={status}>
       {(provided) => (
@@ -99,9 +90,9 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
                       <TaskCard
                         key={task.id}
                         task={task}
-                        projectId={projectId}
-                        onEdit={handleEditTask}
-                        onDelete={handleDeleteTask}
+                        projectId={projectId} // Asegurar que projectId se pasa aquí
+                        onEdit={(pId, tId, desc, start, end) => handleEditTask(tId, desc, start, end)} // Corregida la firma
+                        onDelete={(pId, tId) => handleDeleteTask(tId)} // Corregida la firma
                         onUpdateStatus={handleUpdateTaskStatus}
                         draggableProps={providedDraggable.draggableProps}
                         dragHandleProps={providedDraggable.dragHandleProps}

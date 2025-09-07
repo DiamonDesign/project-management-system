@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
 interface TaskCardProps {
   task: Task;
   projectId: string;
-  onEdit: (taskId: string, newDescription: string, start_date?: string, end_date?: string) => void; // Actualizado
-  onDelete: (taskId: string) => void;
-  onUpdateStatus: (taskId: string, newStatus: Task["status"]) => void;
+  onEdit: (projectId: string, taskId: string, newDescription: string, start_date?: string, end_date?: string) => void; // Actualizado
+  onDelete: (projectId: string, taskId: string) => void; // Actualizado
+  onUpdateStatus: (projectId: string, taskId: string, newStatus: Task["status"]) => void; // Actualizado
   draggableProps?: DraggableProvidedDraggableProps;
   dragHandleProps?: DraggableProvidedDragHandleProps;
   innerRef?: (element: HTMLElement | null) => void;
@@ -39,6 +39,7 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
   const handleSave = () => {
     if (editedDescription.trim()) {
       onEdit(
+        projectId, // Pasar projectId
         task.id,
         editedDescription.trim(),
         editedStartDate ? format(editedStartDate, "yyyy-MM-dd") : undefined,
@@ -58,7 +59,7 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
   };
 
   const handleStatusChange = (value: Task["status"]) => {
-    onUpdateStatus(task.id, value);
+    onUpdateStatus(projectId, task.id, value); // Pasar projectId
   };
 
   return (
@@ -169,7 +170,7 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                 <Pencil className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => onDelete(task.id)} className="text-destructive hover:bg-destructive/10 p-1 h-auto">
+            <Button variant="ghost" size="sm" onClick={() => onDelete(projectId, task.id)} className="text-destructive hover:bg-destructive/10 p-1 h-auto"> {/* Pasar projectId */}
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

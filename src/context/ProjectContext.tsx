@@ -18,6 +18,7 @@ export interface Task {
   createdAt: string;
   start_date?: string; // Nuevo campo
   end_date?: string;   // Nuevo campo
+  is_daily_task?: boolean; // NUEVO CAMPO
 }
 
 // Define la interfaz para Proyecto, incluyendo notas y tareas
@@ -59,6 +60,7 @@ interface ProjectContextType {
   deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
   addTaskToProject: (projectId: string, description: string, start_date?: string, end_date?: string) => Promise<void>; // Actualizado
   updateTaskStatus: (projectId: string, taskId: string, newStatus: Task['status']) => Promise<void>;
+  updateTaskDailyStatus: (projectId: string, taskId: string, isDaily: boolean) => Promise<void>; // NUEVA FUNCIÓN
   deleteTaskFromProject: (projectId: string, taskId: string) => Promise<void>;
 }
 
@@ -100,6 +102,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
           status: task.status || (task.completed ? 'completed' : 'not-started'), // Inferir status si no está presente
           start_date: task.start_date, // Asegurar que start_date esté presente
           end_date: task.end_date,     // Asegurar que end_date esté presente
+          is_daily_task: task.is_daily_task || false, // Inicializar el nuevo campo
         }))
       }));
       setProjects(projectsWithNormalizedData as Project[]);
@@ -266,6 +269,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date().toISOString(),
         start_date,
         end_date,
+        is_daily_task: false, // Por defecto, no es una tarea diaria al añadirla
       };
       const updatedTasks = [...project.tasks, newTask];
 
@@ -308,16 +312,19 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const deleteTaskFromProject = async (projectId: string, taskId: string) => {
+  // NUEVA FUNCIÓN: Actualizar el estado de tarea diaria
+  const updateTaskDailyStatus = async (projectId: string, taskId: string, isDaily: boolean) => {
     if (!user) {
-      showError("Debes iniciar sesión para eliminar tareas.");
+      showError("Debes iniciar sesión para actualizar tareas.");
       return;
     }
     try {
       const project = projects.find(p => p.id === projectId);
       if (!project) throw new Error("Proyecto no encontrado.");
 
-      const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
+      const updatedTasks = project.tasks.map((task) =>
+        task.id === taskId ? { ...task, is_daily_task: isDaily } : task
+      );
 
       await updateProject(projectId, { tasks: updatedTasks });
       setProjects((prev) =>
@@ -325,10 +332,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
           p.id === projectId ? { ...p, tasks: updatedTasks } : p
         )
       );
-      showSuccess("Tarea eliminada.");
+      showSuccess("Estado de tarea diaria actualizado.");
     } catch (error: any) {
-      showError("Error al eliminar la tarea: " + error.message);
-      console.error("Error deleting task:", error);
+      showError("Error al actualizar el estado de tarea diaria: " + error.message);
+      console.error("Error updating daily task status:", error);
     }
   };
 
@@ -344,6 +351,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         deleteNoteFromProject,
         addTaskToProject,
         updateTaskStatus,
+        updateTaskDailyStatus, // Añadir la nueva función al contexto
         deleteTaskFromProject,
       }}
     >
