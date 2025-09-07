@@ -8,13 +8,14 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
+import Tasks from "./pages/Tasks"; // Importar la nueva página de Tareas
 import NotFound from "./pages/NotFound";
 import { ProjectProvider } from "./context/ProjectContext";
 import { SessionContextProvider } from "./context/SessionContext";
 import { ClientProvider } from "./context/ClientContext";
 import Login from "./pages/Login";
 import { Layout } from "./components/Layout";
-import Dashboard from "./pages/Dashboard"; // Importar el nuevo Dashboard
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -30,11 +31,12 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} /> {/* Nueva ruta para el Dashboard */}
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/projects/:id" element={<ProjectDetail />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
+                <Route path="/tasks" element={<Tasks />} /> {/* Nueva ruta para Tareas */}
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

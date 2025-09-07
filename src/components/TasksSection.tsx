@@ -30,10 +30,10 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
     deleteTaskFromProject(projectId, taskId);
   };
 
-  const handleEditTask = (taskId: string, newDescription: string) => {
+  const handleEditTask = (taskId: string, newDescription: string, start_date?: string, end_date?: string) => {
     if (project) {
       const updatedTasks = project.tasks.map(task =>
-        task.id === taskId ? { ...task, description: newDescription } : task
+        task.id === taskId ? { ...task, description: newDescription, start_date, end_date } : task
       );
       updateProject(projectId, { tasks: updatedTasks });
       showSuccess("Tarea actualizada.");

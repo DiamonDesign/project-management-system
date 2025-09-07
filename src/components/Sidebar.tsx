@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, Briefcase, LogOut } from "lucide-react";
+import { Home, Users, Briefcase, LogOut, ListChecks } from "lucide-react"; // Importar ListChecks
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/context/SessionContext";
 import { cn } from "@/lib/utils";
@@ -17,9 +17,9 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
   const navItems = [
     {
       name: "Inicio",
-      href: "/dashboard", // Cambiado a /dashboard
+      href: "/dashboard",
       icon: Home,
-      requiresAuth: true, // Ahora requiere autenticación
+      requiresAuth: true,
     },
     {
       name: "Proyectos",
@@ -31,6 +31,12 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       name: "Clientes",
       href: "/clients",
       icon: Users,
+      requiresAuth: true,
+    },
+    {
+      name: "Tareas", // Nuevo elemento de navegación
+      href: "/tasks",
+      icon: ListChecks, // Icono para tareas
       requiresAuth: true,
     },
   ];
@@ -48,7 +54,7 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
       )}
     >
       <div className="flex items-center justify-center h-16 border-b border-sidebar-border mb-6">
-        <Link to="/dashboard" className="text-2xl font-bold text-sidebar-primary-foreground flex items-center gap-2"> {/* Enlace del logo al dashboard */}
+        <Link to="/dashboard" className="text-2xl font-bold text-sidebar-primary-foreground flex items-center gap-2">
           <Briefcase className="h-7 w-7 text-sidebar-primary-foreground" />
           FreelanceFlow
         </Link>
