@@ -43,12 +43,16 @@ export const Sidebar = ({ isMobile = false, onClose }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
+        "flex flex-col h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border", // Cambiado a h-screen para asegurar altura completa
         isMobile ? "w-64 p-4" : "w-64 p-4"
       )}
     >
       <div className="flex items-center justify-center h-16 border-b border-sidebar-border mb-6">
-        <h2 className="text-2xl font-bold text-sidebar-primary-foreground">Freelance App</h2>
+        {/* Logo simple */}
+        <Link to="/" className="text-2xl font-bold text-sidebar-primary-foreground flex items-center gap-2">
+          <Briefcase className="h-7 w-7 text-sidebar-primary-foreground" />
+          FreelanceFlow
+        </Link>
       </div>
       <nav className="flex-grow space-y-2">
         {navItems.map((item) => (
