@@ -2,9 +2,10 @@ import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useClientContext } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Mail, Phone, Building, MapPin, Landmark } from "lucide-react"; // Importar nuevos iconos
+import { ArrowLeft, Trash2, Mail, Phone, Building, MapPin, Landmark } from "lucide-react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { EditClientDialog } from "@/components/EditClientDialog";
+import { InviteClientDialog } from "@/components/InviteClientDialog"; // Importar el nuevo componente
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +77,7 @@ const ClientDetail = () => {
           <h1 className="text-3xl font-bold">{client.name}</h1>
         </div>
         <div className="flex space-x-2">
+          <InviteClientDialog client={client} /> {/* Nuevo botón de invitación */}
           <EditClientDialog client={client} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
