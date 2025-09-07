@@ -27,7 +27,7 @@ export interface Project {
   name: string;
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
-  dueDate?: string;
+  dueDate?: string; // Aquí se usa camelCase en la aplicación
   client_id?: string | null; // Nuevo campo para asignar cliente
   notes: Note[];
   tasks: Task[];
@@ -89,8 +89,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       setProjects([]);
     } else {
       // Mapear sobre los datos obtenidos para asegurar que las tareas tengan el nuevo campo 'status'
-      const projectsWithNormalizedTasks = data.map(project => ({
+      // y mapear 'due_date' de la DB a 'dueDate' para la interfaz de la aplicación
+      const projectsWithNormalizedData = data.map(project => ({
         ...project,
+        dueDate: project.due_date, // Mapear de snake_case (DB) a camelCase (App)
         tasks: project.tasks.map((task: any) => ({ // 'any' para compatibilidad con datos antiguos
           id: task.id,
           description: task.description,
@@ -100,7 +102,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
           end_date: task.end_date,     // Asegurar que end_date esté presente
         }))
       }));
-      setProjects(projectsWithNormalizedTasks as Project[]);
+      setProjects(projectsWithNormalizedData as Project[]);
     }
     setIsLoadingProjects(false);
   }, [user]);
@@ -117,9 +119,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const newProject: Omit<Project, "id" | "created_at" | "notes" | "tasks"> = {
+      const { dueDate, ...rest } = projectData; // Desestructurar dueDate
+      const newProject = {
         user_id: user.id,
-        ...projectData,
+        ...rest,
+        due_date: dueDate === undefined ? null : dueDate, // Mapear a snake_case para la DB
         client_id: projectData.client_id === "" ? null : projectData.client_id, // Asegurar null si está vacío
       };
       const { data, error } = await supabase
@@ -130,7 +134,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setProjects((prev) => [{ ...data, notes: [], tasks: [] } as Project, ...prev]); // Asegurar que 'notes' y 'tasks' estén presentes
+      // Al actualizar el estado, mapear de nuevo a camelCase para la interfaz de la aplicación
+      setProjects((prev) => [{ ...data, dueDate: data.due_date, notes: [], tasks: [] } as Project, ...prev]);
       showSuccess("Proyecto añadido exitosamente.");
     } catch (error: any) {
       showError("Error al añadir el proyecto: " + error.message);
@@ -144,10 +149,15 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const fieldsToUpdate = {
-        ...updatedFields,
-        client_id: updatedFields.client_id === "" ? null : updatedFields.client_id, // Asegurar null si está vacío
-      };
+      const fieldsToUpdate: Record<string, any> = { ...updatedFields }; // Usar Record<string, any> para claves dinámicas
+
+      // Mapear dueDate a due_date si está presente
+      if ('dueDate' in updatedFields) {
+        fieldsToUpdate.due_date = updatedFields.dueDate === undefined ? null : updatedFields.dueDate;
+        delete fieldsToUpdate.dueDate; // Eliminar la versión camelCase
+      }
+      
+      fieldsToUpdate.client_id = updatedFields.client_id === "" ? null : updatedFields.client_id; // Asegurar null si está vacío
 
       const { error } = await supabase
         .from("projects")
