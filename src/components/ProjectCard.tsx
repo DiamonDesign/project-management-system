@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 interface ProjectCardProps {
   project: {
@@ -25,23 +26,25 @@ const getStatusVariant = (status: string) => {
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>{project.name}</CardTitle>
-        <CardDescription>{project.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex justify-between items-center">
-        <Badge variant={getStatusVariant(project.status)}>
-          {project.status === 'pending' && 'Pendiente'}
-          {project.status === 'in-progress' && 'En Progreso'}
-          {project.status === 'completed' && 'Completado'}
-        </Badge>
-        {project.dueDate && (
-          <span className="text-sm text-muted-foreground">
-            Fecha límite: {project.dueDate}
-          </span>
-        )}
-      </CardContent>
-    </Card>
+    <Link to={`/projects/${project.id}`} className="block">
+      <Card className="w-full max-w-sm hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle>{project.name}</CardTitle>
+          <CardDescription>{project.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-between items-center">
+          <Badge variant={getStatusVariant(project.status)}>
+            {project.status === 'pending' && 'Pendiente'}
+            {project.status === 'in-progress' && 'En Progreso'}
+            {project.status === 'completed' && 'Completado'}
+          </Badge>
+          {project.dueDate && (
+            <span className="text-sm text-muted-foreground">
+              Fecha límite: {project.dueDate}
+            </span>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
