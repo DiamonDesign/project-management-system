@@ -16,7 +16,9 @@ import { ClientProvider } from "./context/ClientContext";
 import Login from "./pages/Login";
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile"; // Importar la nueva página de Perfil
+import Profile from "./pages/Profile";
+import ClientPortalInvite from "./pages/ClientPortalInvite"; // Importar la nueva página
+import ClientPortalDashboard from "./pages/ClientPortalDashboard"; // Importar la nueva página
 
 const queryClient = new QueryClient();
 
@@ -31,6 +33,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/client-portal/invite" element={<ClientPortalInvite />} /> {/* Nueva ruta */}
+              <Route path="/client-portal/dashboard" element={<ClientPortalDashboard />} /> {/* Nueva ruta */}
               <Route element={<Layout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/projects" element={<Projects />} />
@@ -38,7 +42,7 @@ const App = () => (
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
                 <Route path="/tasks" element={<Tasks />} />
-                <Route path="/profile" element={<Profile />} /> {/* Nueva ruta para Perfil */}
+                <Route path="/profile" element={<Profile />} />
               </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
