@@ -11,10 +11,10 @@ interface Note {
   createdAt: string;
 }
 
-interface Task {
+export interface Task {
   id: string;
   description: string;
-  completed: boolean;
+  status: 'not-started' | 'in-progress' | 'completed'; // Cambiado de 'completed: boolean'
   createdAt: string;
 }
 
@@ -56,7 +56,7 @@ interface ProjectContextType {
   addNoteToProject: (projectId: string, content: string) => Promise<void>;
   deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
   addTaskToProject: (projectId: string, description: string) => Promise<void>;
-  toggleTaskCompletion: (projectId: string, taskId: string) => Promise<void>;
+  updateTaskStatus: (projectId: string, taskId: string, newStatus: Task['status']) => Promise<void>; // Nueva función
   deleteTaskFromProject: (projectId: string, taskId: string) => Promise<void>;
 }
 
@@ -86,7 +86,17 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al cargar los proyectos.");
       setProjects([]);
     } else {
-      setProjects(data as Project[]);
+      // Mapear sobre los datos obtenidos para asegurar que las tareas tengan el nuevo campo 'status'
+      const projectsWithNormalizedTasks = data.map(project => ({
+        ...project,
+        tasks: project.tasks.map((task: any) => ({ // 'any' para compatibilidad con datos antiguos
+          id: task.id,
+          description: task.description,
+          createdAt: task.createdAt,
+          status: task.status || (task.completed ? 'completed' : 'not-started') // Inferir status si no está presente
+        }))
+      }));
+      setProjects(projectsWithNormalizedTasks as Project[]);
     }
     setIsLoadingProjects(false);
   }, [user]);
@@ -235,7 +245,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       const project = projects.find(p => p.id === projectId);
       if (!project) throw new Error("Proyecto no encontrado.");
 
-      const newTask = { id: Date.now().toString(), description, completed: false, createdAt: new Date().toISOString() };
+      const newTask = { id: Date.now().toString(), description, status: 'not-started', createdAt: new Date().toISOString() }; // Establecer estado inicial
       const updatedTasks = [...project.tasks, newTask];
 
       await updateProject(projectId, { tasks: updatedTasks });
@@ -251,7 +261,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const toggleTaskCompletion = async (projectId: string, taskId: string) => {
+  const updateTaskStatus = async (projectId: string, taskId: string, newStatus: Task['status']) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar tareas.");
       return;
@@ -261,7 +271,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       if (!project) throw new Error("Proyecto no encontrado.");
 
       const updatedTasks = project.tasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
+        task.id === taskId ? { ...task, status: newStatus } : task
       );
 
       await updateProject(projectId, { tasks: updatedTasks });
@@ -273,7 +283,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showSuccess("Estado de tarea actualizado.");
     } catch (error: any) {
       showError("Error al actualizar la tarea: " + error.message);
-      console.error("Error toggling task completion:", error);
+      console.error("Error updating task status:", error);
     }
   };
 
@@ -312,7 +322,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         addNoteToProject,
         deleteNoteFromProject,
         addTaskToProject,
-        toggleTaskCompletion,
+        updateTaskStatus, // Añadida nueva función
         deleteTaskFromProject,
       }}
     >

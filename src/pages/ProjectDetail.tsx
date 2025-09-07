@@ -1,10 +1,10 @@
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
-import { useProjectContext } from "@/context/ProjectContext";
-import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
+import { useProjectContext, Task } from "@/context/ProjectContext"; // Importar Task
+import { useClientContext } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, User } from "lucide-react"; // Importar icono de User
+import { ArrowLeft, Trash2, User } from "lucide-react";
 import { NotesSection } from "@/components/NotesSection";
 import { TasksSection } from "@/components/TasksSection";
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -23,6 +23,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { showSuccess, showError } from "@/utils/toast";
 import { useSession } from "@/context/SessionContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Nuevas importaciones
 
 const getStatusVariant = (status: string) => {
   switch (status) {
@@ -40,7 +41,7 @@ const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, updateProject, deleteProject, isLoadingProjects } = useProjectContext();
-  const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
+  const { clients, isLoadingClients } = useClientContext();
   const { session, isLoading: isLoadingSession } = useSession();
   const project = projects.find((p) => p.id === id);
 
@@ -84,7 +85,7 @@ const ProjectDetail = () => {
 
   const assignedClient = project.client_id ? clients.find(c => c.id === project.client_id) : null;
 
-  const completedTasks = project.tasks.filter(task => task.completed).length;
+  const completedTasks = project.tasks.filter(task => task.status === 'completed').length; // Usar el nuevo campo 'status'
   const totalTasks = project.tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -156,10 +157,18 @@ const ProjectDetail = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <NotesSection projectId={project.id} />
-        <TasksSection projectId={project.id} />
-      </div>
+      <Tabs defaultValue="tasks" className="w-full"> {/* Por defecto, la pestaña de tareas */}
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="notes">Notas</TabsTrigger>
+          <TabsTrigger value="tasks">Tareas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="notes">
+          <NotesSection projectId={project.id} />
+        </TabsContent>
+        <TabsContent value="tasks">
+          <TasksSection projectId={project.id} />
+        </TabsContent>
+      </Tabs>
       <MadeWithDyad />
     </div>
   );

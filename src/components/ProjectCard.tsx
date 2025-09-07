@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
+import { Task } from "@/context/ProjectContext"; // Importar la interfaz Task
 
 interface ProjectCardProps {
   project: {
@@ -10,7 +11,7 @@ interface ProjectCardProps {
     description: string;
     status: 'pending' | 'in-progress' | 'completed';
     dueDate?: string;
-    tasks: { completed: boolean }[]; // Añadir tareas para calcular el progreso
+    tasks: Task[]; // Usar la interfaz Task actualizada
   };
 }
 
@@ -27,7 +28,7 @@ const getStatusVariant = (status: string) => {
 };
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
-  const completedTasks = project.tasks.filter(task => task.completed).length;
+  const completedTasks = project.tasks.filter(task => task.status === 'completed').length; // Usar el nuevo campo 'status'
   const totalTasks = project.tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
