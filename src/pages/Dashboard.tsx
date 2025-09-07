@@ -9,15 +9,13 @@ import { useClientContext } from "@/context/ClientContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Briefcase, Users, CheckCircle, Clock } from "lucide-react";
+import { Briefcase, Users, CheckCircle, Clock, CalendarDays } from "lucide-react"; // Añadir CalendarDays
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button"; // Importar Button
-import { AddProjectDialog } from "@/components/AddProjectDialog"; // Importar AddProjectDialog
-import { AddTaskDialog } from "@/components/AddTaskDialog"; // Importar AddTaskDialog
+import { AddActionsDropdown } from "@/components/AddActionsDropdown"; // Importar el nuevo componente
 
 const Dashboard = () => {
   const { session, isLoading: isLoadingSession } = useSession();
-  const { projects, addProject, isLoadingProjects } = useProjectContext(); // Obtener addProject
+  const { projects, isLoadingProjects } = useProjectContext();
   const { clients, isLoadingClients } = useClientContext();
   const [date, setDate] = useState<Date | undefined>(new Date());
 
@@ -46,14 +44,11 @@ const Dashboard = () => {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Dashboard de Freelance</h1>
-        <div className="flex space-x-2">
-          <AddProjectDialog onAddProject={addProject} />
-          <AddTaskDialog />
-        </div>
+        <AddActionsDropdown /> {/* Usar el nuevo componente */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
             <Briefcase className="h-4 w-4 text-muted-foreground" />
@@ -65,7 +60,7 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -77,7 +72,7 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tareas Pendientes</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -92,7 +87,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Tareas Pendientes</CardTitle>
           </CardHeader>
@@ -103,9 +98,9 @@ const Dashboard = () => {
               <ScrollArea className="h-72 w-full rounded-md border p-4">
                 <ul className="space-y-2">
                   {pendingTasks.map((task, index) => (
-                    <li key={task.id + index} className="flex items-center justify-between text-sm">
+                    <li key={task.id + index} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-accent/50 transition-colors">
                       <span className="flex-1 pr-2">{task.description}</span>
-                      <Badge variant="secondary">{task.status === 'not-started' ? 'Sin empezar' : 'En progreso'}</Badge>
+                      <Badge variant="secondary" className="capitalize">{task.status === 'not-started' ? 'Sin empezar' : 'En progreso'}</Badge>
                     </li>
                   ))}
                 </ul>
@@ -114,7 +109,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col items-center">
+        <Card className="flex flex-col items-center hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Calendario</CardTitle>
           </CardHeader>
@@ -131,16 +126,17 @@ const Dashboard = () => {
       </div>
 
       {upcomingDueDates.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-6 hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Próximas Fechas Límite</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
               {upcomingDueDates.map(project => (
-                <li key={project.id} className="flex items-center justify-between text-sm">
+                <li key={project.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-accent/50 transition-colors">
                   <span className="font-medium">{project.name}</span>
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <CalendarDays className="h-4 w-4" />
                     {project.dueDate ? format(new Date(project.dueDate), "PPP", { locale: es }) : "Sin fecha"}
                   </span>
                 </li>
