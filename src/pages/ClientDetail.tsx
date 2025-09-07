@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useClientContext } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Trash2, Mail, Phone, Building } from "lucide-react";
+import { ArrowLeft, Trash2, Mail, Phone, Building, MapPin, Landmark } from "lucide-react"; // Importar nuevos iconos
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { EditClientDialog } from "@/components/EditClientDialog";
 import {
@@ -116,6 +116,16 @@ const ClientDetail = () => {
           {client.phone && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4" /> {client.phone}
+            </div>
+          )}
+          {client.address && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4" /> {client.address}
+            </div>
+          )}
+          {client.cif && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Landmark className="h-4 w-4" /> {client.cif}
             </div>
           )}
           {client.notes && client.notes.length > 0 && (

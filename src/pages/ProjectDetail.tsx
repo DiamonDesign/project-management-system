@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useProjectContext } from "@/context/ProjectContext";
+import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, User } from "lucide-react"; // Importar icono de User
 import { NotesSection } from "@/components/NotesSection";
 import { TasksSection } from "@/components/TasksSection";
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -39,10 +40,11 @@ const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { projects, updateProject, deleteProject, isLoadingProjects } = useProjectContext();
+  const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
   const { session, isLoading: isLoadingSession } = useSession();
   const project = projects.find((p) => p.id === id);
 
-  if (isLoadingSession || isLoadingProjects) {
+  if (isLoadingSession || isLoadingProjects || isLoadingClients) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <p className="text-lg text-gray-600 dark:text-gray-400">Cargando detalles del proyecto...</p>
@@ -79,6 +81,8 @@ const ProjectDetail = () => {
       </div>
     );
   }
+
+  const assignedClient = project.client_id ? clients.find(c => c.id === project.client_id) : null;
 
   const completedTasks = project.tasks.filter(task => task.completed).length;
   const totalTasks = project.tasks.length;
@@ -137,6 +141,11 @@ const ProjectDetail = () => {
             <span className="text-sm text-muted-foreground">
               Fecha límite: {project.dueDate}
             </span>
+          )}
+          {assignedClient && (
+            <Link to={`/clients/${assignedClient.id}`} className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
+              <User className="h-4 w-4" /> Cliente: {assignedClient.name}
+            </Link>
           )}
           {totalTasks > 0 && (
             <div className="flex items-center gap-2 w-full md:w-auto">

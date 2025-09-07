@@ -26,6 +26,7 @@ export interface Project {
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
   dueDate?: string;
+  client_id?: string | null; // Nuevo campo para asignar cliente
   notes: Note[];
   tasks: Task[];
   created_at: string;
@@ -43,6 +44,7 @@ export const ProjectFormSchema = z.object({
     required_error: "Por favor, selecciona un estado para el proyecto.",
   }),
   dueDate: z.string().optional().nullable(), // Permitir null para opcional
+  client_id: z.string().optional().nullable(), // Nuevo campo para asignar cliente
 });
 
 interface ProjectContextType {
@@ -101,11 +103,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const newProject: Omit<Project, "id" | "created_at"> = {
+      const newProject: Omit<Project, "id" | "created_at" | "notes" | "tasks"> = {
         user_id: user.id,
         ...projectData,
-        notes: [],
-        tasks: [],
+        client_id: projectData.client_id === "" ? null : projectData.client_id, // Asegurar null si está vacío
       };
       const { data, error } = await supabase
         .from("projects")
@@ -115,7 +116,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setProjects((prev) => [data as Project, ...prev]);
+      setProjects((prev) => [{ ...data, notes: [], tasks: [] } as Project, ...prev]); // Asegurar que 'notes' y 'tasks' estén presentes
       showSuccess("Proyecto añadido exitosamente.");
     } catch (error: any) {
       showError("Error al añadir el proyecto: " + error.message);
@@ -129,9 +130,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
+      const fieldsToUpdate = {
+        ...updatedFields,
+        client_id: updatedFields.client_id === "" ? null : updatedFields.client_id, // Asegurar null si está vacío
+      };
+
       const { error } = await supabase
         .from("projects")
-        .update(updatedFields)
+        .update(fieldsToUpdate)
         .eq("id", projectId)
         .eq("user_id", user.id);
 

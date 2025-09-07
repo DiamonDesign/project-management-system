@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Project, ProjectFormSchema } from "@/context/ProjectContext";
+import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
 
 interface EditProjectDialogProps {
   project: Project;
@@ -43,6 +44,7 @@ interface EditProjectDialogProps {
 
 export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialogProps) => {
   const [open, setOpen] = useState(false);
+  const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
@@ -50,6 +52,7 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
       description: project.description,
       status: project.status,
       dueDate: project.dueDate || undefined,
+      client_id: project.client_id || "", // Valor por defecto para el selector de cliente
     },
   });
 
@@ -59,6 +62,7 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
       description: project.description,
       status: project.status,
       dueDate: project.dueDate || undefined,
+      client_id: project.client_id || "",
     });
   }, [project, form]);
 
@@ -134,6 +138,35 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                       <SelectItem value="pending">Pendiente</SelectItem>
                       <SelectItem value="in-progress">En Progreso</SelectItem>
                       <SelectItem value="completed">Completado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente (Opcional)</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value || ""}
+                    disabled={isLoadingClients}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un cliente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Sin cliente</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -38,6 +38,8 @@ export const EditClientDialog = ({ client }: EditClientDialogProps) => {
       email: client.email || "",
       phone: client.phone || "",
       company: client.company || "",
+      address: client.address || "", // Nuevo campo
+      cif: client.cif || "",         // Nuevo campo
     },
   });
 
@@ -47,6 +49,8 @@ export const EditClientDialog = ({ client }: EditClientDialogProps) => {
       email: client.email || "",
       phone: client.phone || "",
       company: client.company || "",
+      address: client.address || "",
+      cif: client.cif || "",
     });
   }, [client, form]);
 
@@ -119,6 +123,32 @@ export const EditClientDialog = ({ client }: EditClientDialogProps) => {
                   <FormLabel>Empresa (Opcional)</FormLabel>
                   <FormControl>
                     <Input placeholder="Mi Empresa S.L." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dirección (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Calle Falsa 123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cif"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CIF (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="A12345678" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

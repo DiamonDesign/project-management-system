@@ -33,6 +33,8 @@ export const AddClientDialog = () => {
       email: "",
       phone: "",
       company: "",
+      address: "", // Nuevo campo
+      cif: "",     // Nuevo campo
     },
   });
 
@@ -104,6 +106,32 @@ export const AddClientDialog = () => {
                   <FormLabel>Empresa (Opcional)</FormLabel>
                   <FormControl>
                     <Input placeholder="Mi Empresa S.L." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dirección (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Calle Falsa 123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cif"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CIF (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="A12345678" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

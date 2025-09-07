@@ -34,7 +34,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale"; // Importar el locale español
 import { cn } from "@/lib/utils";
-import { ProjectFormSchema } from "@/context/ProjectContext"; // Importar el esquema desde el contexto
+import { ProjectFormSchema } from "@/context/ProjectContext";
+import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
 
 interface AddProjectDialogProps {
   onAddProject: (project: z.infer<typeof ProjectFormSchema>) => void;
@@ -42,13 +43,15 @@ interface AddProjectDialogProps {
 
 export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
   const [open, setOpen] = useState(false);
+  const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
       name: "",
       description: "",
       status: "pending",
-      dueDate: undefined, // Usar undefined para opcional
+      dueDate: undefined,
+      client_id: "", // Valor por defecto para el selector de cliente
     },
   });
 
@@ -61,6 +64,7 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
         description: "",
         status: "pending",
         dueDate: undefined,
+        client_id: "",
       });
       setOpen(false);
     } catch (error) {
@@ -128,6 +132,35 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
                       <SelectItem value="pending">Pendiente</SelectItem>
                       <SelectItem value="in-progress">En Progreso</SelectItem>
                       <SelectItem value="completed">Completado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente (Opcional)</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value || ""}
+                    disabled={isLoadingClients}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un cliente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Sin cliente</SelectItem>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
