@@ -145,8 +145,8 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
                 <FormItem>
                   <FormLabel>Cliente (Opcional)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
+                    onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                    defaultValue={field.value || "null"}
                     disabled={isLoadingClients}
                   >
                     <FormControl>
@@ -155,7 +155,7 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Sin cliente</SelectItem>
+                      <SelectItem value="null">Sin cliente</SelectItem>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}

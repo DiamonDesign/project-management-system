@@ -151,8 +151,8 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                 <FormItem>
                   <FormLabel>Cliente (Opcional)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
+                    onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                    defaultValue={field.value || "null"}
                     disabled={isLoadingClients}
                   >
                     <FormControl>
@@ -161,7 +161,7 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Sin cliente</SelectItem>
+                      <SelectItem value="null">Sin cliente</SelectItem>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.name}
