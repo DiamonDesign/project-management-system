@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -39,11 +37,11 @@ import { useClientContext } from "@/context/ClientContext"; // Importar useClien
 
 interface AddProjectDialogProps {
   onAddProject: (project: z.infer<typeof ProjectFormSchema>) => void;
-  children: React.ReactNode; // Añadir children para el disparador
+  open: boolean; // Add open prop
+  onOpenChange: (open: boolean) => void; // Add onOpenChange prop
 }
 
-export const AddProjectDialog = ({ onAddProject, children }: AddProjectDialogProps) => {
-  const [open, setOpen] = useState(false);
+export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjectDialogProps) => {
   const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
@@ -67,7 +65,7 @@ export const AddProjectDialog = ({ onAddProject, children }: AddProjectDialogPro
         dueDate: undefined,
         client_id: "",
       });
-      setOpen(false);
+      onOpenChange(false); // Close dialog using onOpenChange
     } catch (error) {
       showError("Error al añadir el proyecto.");
       console.error("Error adding project:", error);
@@ -75,10 +73,7 @@ export const AddProjectDialog = ({ onAddProject, children }: AddProjectDialogPro
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children} {/* Usar children como disparador */}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>

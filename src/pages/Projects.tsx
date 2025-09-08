@@ -5,12 +5,15 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { useSession } from "@/context/SessionContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, PlusCircle } from "lucide-react"; // Mantener la importación si se usa en otro lugar, pero no para el botón
+import { PlusCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DialogTrigger, Dialog } from "@/components/ui/dialog"; // Import Dialog and DialogTrigger
+import { useState } from "react"; // Import useState
 
 const Projects = () => {
   const { projects, addProject, isLoadingProjects } = useProjectContext();
-  const { session, isLoading: isLoadingSession } = useSession(); // signOut ya no se usa directamente aquí
+  const { session, isLoading: isLoadingSession } = useSession();
+  const [isAddProjectDialogOpen, setIsAddProjectDialogOpen] = useState(false); // State for project dialog
 
   if (isLoadingSession || isLoadingProjects) {
     return (
@@ -29,13 +32,20 @@ const Projects = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Mis Proyectos</h1>
         <div className="flex items-center space-x-4">
-          <AddProjectDialog onAddProject={addProject}>
-            <Button className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Añadir Nuevo Proyecto
-            </Button>
-          </AddProjectDialog>
-          {/* Botón de Cerrar Sesión eliminado de aquí */}
+          {/* Use Dialog and DialogTrigger directly here */}
+          <Dialog open={isAddProjectDialogOpen} onOpenChange={setIsAddProjectDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" />
+                Añadir Nuevo Proyecto
+              </Button>
+            </DialogTrigger>
+            <AddProjectDialog
+              open={isAddProjectDialogOpen}
+              onOpenChange={setIsAddProjectDialogOpen}
+              onAddProject={addProject}
+            />
+          </Dialog>
         </div>
       </div>
       {projects.length === 0 ? (
