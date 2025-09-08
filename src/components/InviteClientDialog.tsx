@@ -65,8 +65,9 @@ export const InviteClientDialog = ({ client }: InviteClientDialogProps) => {
       showSuccess("Invitación enviada exitosamente.");
       setInvitationLink(data.portalUrl);
       setTemporaryPassword(data.temporaryPassword);
-    } catch (error: any) {
-      showError("Error al enviar la invitación: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al enviar la invitación: " + errorMessage);
       console.error("Error inviting client:", error);
     } finally {
       setIsInviting(false);

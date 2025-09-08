@@ -37,7 +37,8 @@ serve(async (req) => {
     }
 
     // Check if a client with this email already exists in auth.users
-    let clientAuthUser;
+    let clientAuthUser: { id: string; email?: string } | undefined;
+    let temporaryPassword: string | undefined;
     const { data: existingUsers, error: fetchUserError } = await supabaseAdmin.auth.admin.listUsers({
       email: clientEmail,
     });
@@ -55,7 +56,7 @@ serve(async (req) => {
       console.log(`User with email ${clientEmail} already exists: ${clientAuthUser.id}`);
     } else {
       // Create a new user for the client portal
-      const temporaryPassword = uuidv4().substring(0, 12); // Generate a temporary password
+      temporaryPassword = uuidv4().substring(0, 12); // Generate a temporary password
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: clientEmail,
         password: temporaryPassword,
@@ -101,7 +102,7 @@ serve(async (req) => {
       });
     }
 
-    let inviteToken = uuidv4();
+    const inviteToken = uuidv4();
     const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days from now
 
     if (!existingPortalEntry) {

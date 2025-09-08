@@ -2,6 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { useFormSubmission } from "@/hooks/useAsyncOperation";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import {
   Dialog,
   DialogContent,
@@ -54,10 +56,9 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
     },
   });
 
-  const onSubmit = (values: z.infer<typeof ProjectFormSchema>) => {
-    try {
-      onAddProject(values);
-      showSuccess("Proyecto añadido exitosamente.");
+  const { submit, submitting, error } = useFormSubmission(
+    async (values: z.infer<typeof ProjectFormSchema>) => {
+      await onAddProject(values);
       form.reset({
         name: "",
         description: "",
@@ -65,21 +66,30 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
         dueDate: undefined,
         client_id: "",
       });
-      onOpenChange(false); // Close dialog using onOpenChange
-    } catch (error) {
-      showError("Error al añadir el proyecto.");
-      console.error("Error adding project:", error);
+      onOpenChange(false);
+    },
+    {
+      onSuccess: () => showSuccess("Proyecto añadido exitosamente."),
+      onError: (err) => {
+        showError(`Error al añadir el proyecto: ${err.message}`);
+        console.error("Error adding project:", err);
+      },
     }
+  );
+
+  const onSubmit = (values: z.infer<typeof ProjectFormSchema>) => {
+    submit(values);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <ComponentErrorBoundary>
+      <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -202,12 +212,18 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button 
+              type="submit" 
+              className="w-full"
+              loading={submitting}
+              disabled={submitting}
+            >
               Guardar Proyecto
             </Button>
           </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </ComponentErrorBoundary>
   );
 };

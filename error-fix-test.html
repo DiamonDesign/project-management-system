@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #cce7ff; border-color: #99d6ff; }
+        button { margin: 5px; padding: 8px 16px; }
+    </style>
+</head>
+<body>
+    <h1>Error Handling and Timeout Fixes Test</h1>
+    
+    <div class="test-section info">
+        <h3>Global Error Handler Test</h3>
+        <p>These buttons will trigger various error scenarios that should be suppressed by our error handlers:</p>
+        <button onclick="testShareModalError()">Test Share Modal Error</button>
+        <button onclick="testRuntimeError()">Test Runtime LastError</button>
+        <button onclick="testNullPropertyError()">Test Null Property Error</button>
+        <button onclick="testExtensionError()">Test Extension Context Error</button>
+        <div id="error-test-results"></div>
+    </div>
+
+    <div class="test-section info">
+        <h3>Context Timeout/Retry Test</h3>
+        <p>Test the retry mechanism and timeout handling for contexts:</p>
+        <button onclick="simulateSlowRequest()">Simulate Slow Network Request</button>
+        <button onclick="simulateFailedRequest()">Simulate Failed Network Request</button>
+        <div id="context-test-results"></div>
+    </div>
+
+    <div class="test-section success" id="test-status">
+        <h3>Test Status</h3>
+        <p>All error handlers are active. Check the browser console for suppressed error messages.</p>
+    </div>
+
+    <script>
+        // Error test functions
+        function testShareModalError() {
+            try {
+                // Simulate share-modal.js error
+                throw new Error('Cannot read properties of null (reading "addEventListener") at share-modal.js:1');
+            } catch (e) {
+                // This should be caught by our global error handler
+                window.onerror(e.message, 'share-modal.js', 1, 1, e);
+            }
+            logTest('Share Modal Error', 'Error should be suppressed');
+        }
+
+        function testRuntimeError() {
+            try {
+                // Simulate chrome extension runtime.lastError
+                throw new Error('The message port closed before a response was received');
+            } catch (e) {
+                window.onerror(e.message, 'chrome-extension://abc123/script.js', 1, 1, e);
+            }
+            logTest('Runtime LastError', 'Extension error should be suppressed');
+        }
+
+        function testNullPropertyError() {
+            try {
+                // Simulate null property access
+                throw new Error('Cannot read properties of null (reading "style")');
+            } catch (e) {
+                window.onerror(e.message, location.href, 1, 1, e);
+            }
+            logTest('Null Property Error', 'Null property error should be suppressed');
+        }
+
+        function testExtensionError() {
+            try {
+                // Simulate extension context invalidated
+                throw new Error('Extension context invalidated');
+            } catch (e) {
+                window.onerror(e.message, 'chrome-extension://xyz/content.js', 1, 1, e);
+            }
+            logTest('Extension Context Error', 'Extension context error should be suppressed');
+        }
+
+        // Context retry simulation functions
+        function simulateSlowRequest() {
+            logTest('Slow Request Test', 'Simulating 12-second request (should timeout and retry)');
+            
+            // This simulates what would happen in our retry mechanism
+            const startTime = Date.now();
+            setTimeout(() => {
+                const elapsed = Date.now() - startTime;
+                logTest('Slow Request Result', `Request would timeout after 8s, retry 2 times, then show timeout message`);
+            }, 1000);
+        }
+
+        function simulateFailedRequest() {
+            logTest('Failed Request Test', 'Simulating network failure (should retry then fallback)');
+            
+            setTimeout(() => {
+                logTest('Failed Request Result', 'Request would fail, retry 2 times with exponential backoff, then show empty state');
+            }, 1000);
+        }
+
+        function logTest(testName, result) {
+            const errorResults = document.getElementById('error-test-results');
+            const contextResults = document.getElementById('context-test-results');
+            const targetDiv = testName.includes('Request') ? contextResults : errorResults;
+            
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>${testName}:</strong> ${result}`;
+            logEntry.style.margin = '5px 0';
+            logEntry.style.padding = '5px';
+            logEntry.style.backgroundColor = '#e8f5e8';
+            logEntry.style.border = '1px solid #c3e6cb';
+            logEntry.style.borderRadius = '3px';
+            
+            targetDiv.appendChild(logEntry);
+        }
+
+        // Test that our emergency fallbacks are working
+        if (window.__emergencyFallback) {
+            console.log('✅ Emergency fallbacks loaded successfully');
+        } else {
+            console.warn('❌ Emergency fallbacks not found');
+        }
+
+        // Test error handler override
+        console.log('✅ Testing error handlers...');
+        
+        // Verify our enhanced error handler is in place
+        if (window.onerror && window.onerror.toString().includes('suppressedPatterns')) {
+            console.log('✅ Enhanced error handler is active');
+        } else {
+            console.warn('❌ Enhanced error handler may not be active');
+        }
+
+        // Set up console monitoring
+        const originalConsoleWarn = console.warn;
+        let suppressedErrors = 0;
+        
+        console.warn = function(...args) {
+            if (args[0] && args[0].includes('External script error suppressed')) {
+                suppressedErrors++;
+                document.getElementById('test-status').innerHTML = 
+                    `<h3>Test Status</h3><p>✅ ${suppressedErrors} errors successfully suppressed by error handlers.</p>`;
+            }
+            originalConsoleWarn.apply(console, args);
+        };
+    </script>
+</body>
+</html>

@@ -2,7 +2,22 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Pencil, Save, X, CalendarIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Trash2, 
+  Pencil, 
+  Save, 
+  X, 
+  CalendarIcon,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  PlayCircle,
+  Pause,
+  Flag,
+  GripVertical,
+  MoreHorizontal
+} from "lucide-react";
 import { Task } from "@/context/ProjectContext";
 import { showError } from "@/utils/toast";
 import {
@@ -12,10 +27,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DraggableProvidedDraggableProps, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, isAfter, isBefore, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -70,50 +92,152 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
     onUpdateStatus(projectId, task.id, value);
   };
 
-  const priorityColor = (p?: Task['priority']) => {
+  const getPriorityConfig = (p?: Task['priority']) => {
     switch (p) {
-      case 'high': return 'text-red-600';
-      case 'low': return 'text-green-600';
+      case 'high': 
+        return { 
+          color: 'text-destructive', 
+          bg: 'bg-destructive/10 border-destructive/30',
+          icon: AlertCircle,
+          label: 'Alta'
+        };
+      case 'low': 
+        return { 
+          color: 'text-success', 
+          bg: 'bg-success/10 border-success/30',
+          icon: CheckCircle2,
+          label: 'Baja'
+        };
       case 'medium':
       default:
-        return 'text-yellow-600';
+        return { 
+          color: 'text-warning', 
+          bg: 'bg-warning/10 border-warning/30',
+          icon: Flag,
+          label: 'Media'
+        };
     }
   };
+  
+  const getStatusConfig = (status: Task['status']) => {
+    switch (status) {
+      case 'completed':
+        return { 
+          color: 'text-success', 
+          bg: 'bg-success/10 border-success/30',
+          icon: CheckCircle2,
+          label: 'Completada'
+        };
+      case 'in-progress':
+        return { 
+          color: 'text-info', 
+          bg: 'bg-info/10 border-info/30',
+          icon: PlayCircle,
+          label: 'En progreso'
+        };
+      case 'not-started':
+      default:
+        return { 
+          color: 'text-muted-foreground', 
+          bg: 'bg-muted/20 border-muted/30',
+          icon: Pause,
+          label: 'Sin empezar'
+        };
+    }
+  };
+  
+  const priorityConfig = getPriorityConfig(task.priority);
+  const statusConfig = getStatusConfig(task.status);
+  const PriorityIcon = priorityConfig.icon;
+  const StatusIcon = statusConfig.icon;
+  
+  const isOverdue = task.end_date && isBefore(new Date(task.end_date), new Date()) && task.status !== 'completed';
+  const isDueSoon = task.end_date && isAfter(new Date(task.end_date), new Date()) && isBefore(new Date(task.end_date), addDays(new Date(), 2));
 
   return (
     <Card
-      className="mb-3 p-3"
+      className={cn(
+        "mb-3 group relative transition-all duration-200 hover:shadow-card-hover animate-fade-in",
+        isOverdue && "ring-2 ring-destructive/30 border-destructive/30 bg-destructive/5",
+        isDueSoon && "ring-1 ring-warning/30 border-warning/30 bg-warning/5",
+        task.status === 'completed' && "opacity-75 bg-success/5"
+      )}
       ref={innerRef}
       {...draggableProps}
-      {...dragHandleProps}
     >
-      <CardContent className="p-0 flex flex-col gap-2">
+      <CardContent className="p-4 space-y-3">
+        {/* Drag Handle */}
+        <div className="flex items-center gap-2">
+          <div 
+            {...dragHandleProps} 
+            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+          
+          {/* Priority Indicator */}
+          <div className={cn(
+            "w-3 h-3 rounded-full border-2",
+            task.priority === 'high' && "bg-destructive border-destructive",
+            task.priority === 'medium' && "bg-warning border-warning",
+            task.priority === 'low' && "bg-success border-success",
+            !task.priority && "bg-muted border-muted"
+          )} />
+          
+          {/* Task Actions Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon-sm" 
+                className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditing(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete(projectId, task.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         {editing ? (
-          <>
+          <div className="space-y-4">
             <Input
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
-              className="flex-1 font-medium"
+              className="font-medium text-base"
               placeholder="Título de la tarea"
+              autoFocus
             />
             <textarea
               value={editedDescription}
               onChange={(e) => setEditedDescription(e.target.value)}
-              className="w-full border rounded p-2 text-sm resize-y h-24"
+              className="w-full border rounded-lg p-3 text-sm resize-y h-24 bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
               placeholder="Descripción detallada (opcional)"
             />
-            <div className="flex gap-2 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
-                      "w-full pl-3 text-left font-normal",
+                      "justify-start text-left font-normal",
                       !editedStartDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedStartDate ? format(editedStartDate, "PPP", { locale: es }) : <span>Fecha inicio</span>}
+                    {editedStartDate ? format(editedStartDate, "PPP", { locale: es }) : "Fecha inicio"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -126,17 +250,18 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                   />
                 </PopoverContent>
               </Popover>
+              
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
-                      "w-full pl-3 text-left font-normal",
+                      "justify-start text-left font-normal",
                       !editedEndDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedEndDate ? format(editedEndDate, "PPP", { locale: es }) : <span>Fecha fin (límite)</span>}
+                    {editedEndDate ? format(editedEndDate, "PPP", { locale: es }) : "Fecha límite"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -150,73 +275,163 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="flex items-center gap-2 mt-2">
+            
+            <div className="flex items-center gap-3">
               <Select onValueChange={(v) => setEditedPriority(v as Task['priority'])} defaultValue={editedPriority}>
-                <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Baja</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="low">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-success" />
+                      Baja prioridad
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-warning" />
+                      Media prioridad
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="high">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-destructive" />
+                      Alta prioridad
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-              <span className={`flex-1 text-sm ${task.status === "completed" ? "line-through text-muted-foreground" : "font-medium"}`}>
-                {task.title}
-              </span>
-              <span className={`text-xs ${priorityColor(task.priority)}`}>{task.priority?.toUpperCase()}</span>
-            </div>
-            {task.description && (
-              <div className="text-xs text-muted-foreground">
-                {task.description}
-              </div>
-            )}
-            {(task.start_date || task.end_date) && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CalendarIcon className="h-3 w-3" />
-                {task.start_date && format(new Date(task.start_date), "PPP", { locale: es })}
-                {task.start_date && task.end_date && " - "}
-                {task.end_date && format(new Date(task.end_date), "PPP", { locale: es })}
-              </div>
-            )}
-          </>
-        )}
-        <div className="flex items-center justify-between mt-2">
-          <Select onValueChange={handleStatusChange} value={task.status}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="not-started">Sin empezar</SelectItem>
-              <SelectItem value="in-progress">En Progreso</SelectItem>
-              <SelectItem value="completed">Listo</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex space-x-1">
-            {editing ? (
-              <>
-                <Button variant="ghost" size="sm" onClick={handleSave} className="text-green-600 hover:bg-green-600/10 p-1 h-auto">
-                  <Save className="h-4 w-4" />
+              
+              <div className="flex items-center gap-1 ml-auto">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSave}
+                  className="bg-success/10 hover:bg-success/20 border-success/30 text-success"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Guardar
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleCancel} className="text-gray-500 hover:bg-gray-500/10 p-1 h-auto">
-                  <X className="h-4 w-4" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCancel}
+                  className="hover:bg-muted/50"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancelar
                 </Button>
-              </>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="text-blue-600 hover:bg-blue-600/10 p-1 h-auto">
-                <Pencil className="h-4 w-4" />
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={() => onDelete(projectId, task.id)} className="text-destructive hover:bg-destructive/10 p-1 h-auto">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Task Title and Priority */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className={cn(
+                  "font-medium text-base leading-tight",
+                  task.status === "completed" && "line-through text-muted-foreground"
+                )}>
+                  {task.title}
+                </h3>
+                {task.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {task.description}
+                  </p>
+                )}
+              </div>
+              
+              {/* Priority Badge */}
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "flex items-center gap-1 text-xs font-medium border-2",
+                  priorityConfig.bg,
+                  priorityConfig.color
+                )}
+              >
+                <PriorityIcon className="h-3 w-3" />
+                {priorityConfig.label}
+              </Badge>
+            </div>
+            
+            {/* Dates Section */}
+            {(task.start_date || task.end_date) && (
+              <div className="flex items-center gap-4 text-sm">
+                {task.start_date && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <PlayCircle className="h-3 w-3" />
+                    <span>Inicio: {format(new Date(task.start_date), "PPP", { locale: es })}</span>
+                  </div>
+                )}
+                {task.end_date && (
+                  <div className={cn(
+                    "flex items-center gap-2",
+                    isOverdue && "text-destructive font-medium",
+                    isDueSoon && "text-warning font-medium",
+                    !isOverdue && !isDueSoon && "text-muted-foreground"
+                  )}>
+                    {isOverdue && <AlertCircle className="h-3 w-3" />}
+                    {isDueSoon && <Clock className="h-3 w-3" />}
+                    {!isOverdue && !isDueSoon && <CalendarIcon className="h-3 w-3" />}
+                    <span>Límite: {format(new Date(task.end_date), "PPP", { locale: es })}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Status and Actions Row */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <Select onValueChange={handleStatusChange} value={task.status}>
+                <SelectTrigger className="w-[140px] h-8">
+                  <StatusIcon className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not-started">
+                    <div className="flex items-center gap-2">
+                      <Pause className="h-4 w-4 text-muted-foreground" />
+                      Sin empezar
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="in-progress">
+                    <div className="flex items-center gap-2">
+                      <PlayCircle className="h-4 w-4 text-info" />
+                      En progreso
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="completed">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      Completada
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon-sm" 
+                  onClick={() => setEditing(true)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/10"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon-sm" 
+                  onClick={() => onDelete(projectId, task.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

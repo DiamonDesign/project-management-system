@@ -3,6 +3,8 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/context/SessionContext";
 import { showSuccess, showError } from "@/utils/toast";
+import { useLoadingTimeout } from "@/hooks/useLoadingTimeout";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
 
 // Define las interfaces para Cliente
 export interface Client {
@@ -44,6 +46,12 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoading: isLoadingSession } = useSession();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
+  
+  // Safety timeout to prevent infinite loading (15 seconds)
+  useLoadingTimeout(isLoadingClients, setIsLoadingClients, 15000);
+  
+  // Retry mechanism for failed requests
+  const { executeWithRetry } = useRetryableRequest();
 
   const fetchClients = useCallback(async () => {
     if (!user) {
@@ -53,20 +61,54 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoadingClients(true);
-    const { data, error } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    
+    const result = await executeWithRetry(
+      () => supabase
+        .from("clients")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      {
+        maxRetries: 2,
+        retryDelayMs: 1000,
+        timeoutMs: 8000
+      },
+      'clientes'
+    );
+
+    if (!result) {
+      // Request failed after all retries, set empty state
+      setClients([]);
+      setIsLoadingClients(false);
+      return;
+    }
+
+    const { data, error } = result;
 
     if (error) {
       console.error("Error fetching clients:", error);
       showError("Error al cargar los clientes.");
       setClients([]);
-    } else {
-      setClients(data as Client[]);
+      setIsLoadingClients(false);
+      return;
     }
-    setIsLoadingClients(false);
+
+    try {
+
+      const clientsWithNotes = (data as Array<Record<string, unknown>>).map((client) => ({
+        ...client,
+        notes: Array.isArray(client.notes) ? client.notes : [],
+      }));
+      
+      setClients(clientsWithNotes as Client[]);
+    } catch (error) {
+      console.error("Error processing clients data:", error);
+      showError("Error al procesar los datos de clientes.");
+      setClients([]);
+    } finally {
+      // Always ensure loading is set to false
+      setIsLoadingClients(false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -101,11 +143,12 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 
       setClients((prev) => [{ ...data, notes: [] } as Client, ...prev]); // Asegurar que 'notes' esté presente
       showSuccess("Cliente añadido exitosamente.");
-    } catch (error: any) {
-      showError("Error al añadir el cliente: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al añadir el cliente: " + errorMessage);
       console.error("Error adding client:", error);
     }
-  }, [user, setClients, fetchClients]); // Añadir fetchClients a las dependencias
+  }, [user]);
 
   const updateClient = useCallback(async (clientId: string, updatedFields: Partial<Client>) => {
     if (!user) {
@@ -127,8 +170,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Cliente actualizado exitosamente.");
-    } catch (error: any) {
-      showError("Error al actualizar el cliente: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar el cliente: " + errorMessage);
       console.error("Error updating client:", error);
     }
   }, [user, setClients]);
@@ -149,8 +193,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 
       setClients((prev) => prev.filter((client) => client.id !== clientId));
       showSuccess("Cliente eliminado exitosamente.");
-    } catch (error: any) {
-      showError("Error al eliminar el cliente: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al eliminar el cliente: " + errorMessage);
       console.error("Error deleting client:", error);
     }
   }, [user, setClients]);

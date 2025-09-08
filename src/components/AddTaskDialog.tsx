@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,6 +34,7 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/context/ProjectContext";
 import { showError, showSuccess } from "@/utils/toast";
+import { ComponentErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 
 const TaskFormSchema = z.object({
   projectId: z.string().min(1, { message: "Debes seleccionar un proyecto." }),
@@ -50,6 +52,7 @@ interface AddTaskDialogProps {
 
 export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
   const { projects, isLoadingProjects, addTaskToProject } = useProjectContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof TaskFormSchema>>({
     resolver: zodResolver(TaskFormSchema),
     defaultValues: {
@@ -63,6 +66,7 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
   });
 
   const onSubmit = async (values: z.infer<typeof TaskFormSchema>) => {
+    setIsSubmitting(true);
     try {
       await addTaskToProject(
         values.projectId,
@@ -78,11 +82,14 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     } catch (error) {
       showError("Error al añadir la tarea.");
       console.error("Error adding task:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
+    <ComponentErrorBoundary>
+      <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Añadir Nueva Tarea</DialogTitle>
@@ -247,12 +254,18 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button 
+              type="submit" 
+              className="w-full"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            >
               Añadir Tarea
             </Button>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+    </ComponentErrorBoundary>
   );
 };

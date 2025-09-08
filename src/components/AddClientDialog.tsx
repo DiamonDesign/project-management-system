@@ -25,6 +25,7 @@ import { showSuccess, showError } from "@/utils/toast";
 
 export const AddClientDialog = () => {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { addClient } = useClientContext();
   const form = useForm<z.infer<typeof ClientFormSchema>>({
     resolver: zodResolver(ClientFormSchema),
@@ -39,12 +40,24 @@ export const AddClientDialog = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof ClientFormSchema>) => {
+    setIsSubmitting(true);
     try {
       await addClient(values);
-      form.reset();
+      form.reset({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        address: "",
+        cif: "",
+      });
       setOpen(false);
+      showSuccess("Cliente añadido exitosamente.");
     } catch (error) {
       console.error("Error adding client:", error);
+      showError("Error al añadir el cliente.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -137,7 +150,12 @@ export const AddClientDialog = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button 
+              type="submit" 
+              className="w-full" 
+              loading={isSubmitting}
+              disabled={isSubmitting}
+            >
               Guardar Cliente
             </Button>
           </form>

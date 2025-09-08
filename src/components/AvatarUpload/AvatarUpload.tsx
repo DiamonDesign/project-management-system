@@ -37,6 +37,10 @@ export const AvatarUpload = ({ uid, initialAvatarPath, onUpload }: AvatarUploadP
     }
 
     const file = event.target.files[0];
+    if (!file) {
+      showError('No se seleccionó ningún archivo.');
+      return;
+    }
     const fileExt = file.name.split('.').pop();
     const filePath = `${uid}.${fileExt}`; // Use UID as filename to ensure one avatar per user
 
@@ -69,8 +73,9 @@ export const AvatarUpload = ({ uid, initialAvatarPath, onUpload }: AvatarUploadP
       onUpload(filePath); // Pass the storage path, not the public URL
       showSuccess('Avatar subido exitosamente.');
 
-    } catch (error: any) {
-      showError('Error al subir el avatar: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError('Error al subir el avatar: ' + errorMessage);
       console.error('Error uploading avatar:', error);
     } finally {
       setUploading(false);

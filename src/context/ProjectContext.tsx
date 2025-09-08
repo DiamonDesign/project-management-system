@@ -3,8 +3,12 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/context/SessionContext";
 import { showSuccess, showError } from "@/utils/toast";
+import { validationSchemas, isValidUuid } from "@/lib/security";
+import { useLoadingTimeout } from "@/hooks/useLoadingTimeout";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import type { Page, PageFormData, PageType } from "@/types";
 
-// Define las interfaces para Nota y Tarea
+// Legacy Note interface for backward compatibility
 interface Note {
   id: string;
   title?: string;
@@ -24,33 +28,42 @@ export interface Task {
   priority?: 'low' | 'medium' | 'high';
 }
 
-// Define la interfaz para Proyecto, incluyendo notas y tareas
+// Project interface with both legacy notes and new pages
 export interface Project {
   id: string;
-  user_id: string; // Añadir user_id para vincular con el usuario autenticado
+  user_id: string;
   name: string;
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
-  dueDate?: string; // Aquí se usa camelCase en la aplicación
-  client_id?: string | null; // Nuevo campo para asignar cliente
-  notes: Note[];
+  dueDate?: string;
+  client_id?: string | null;
+  notes: Note[]; // Legacy support
+  pages?: Page[]; // New pages system
   tasks: Task[];
   created_at: string;
 }
 
-// Define el esquema para añadir un nuevo proyecto (sin ID, notas ni tareas)
 export const ProjectFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "El nombre del proyecto debe tener al menos 2 caracteres.",
-  }),
-  description: z.string().min(10, {
-    message: "La descripción debe tener al menos 10 caracteres.",
-  }),
+  name: validationSchemas.projectTitle,
+  description: validationSchemas.description,
   status: z.enum(["pending", "in-progress", "completed"], {
     required_error: "Por favor, selecciona un estado para el proyecto.",
   }),
-  dueDate: z.string().optional().nullable(), // Permitir null para opcional
-  client_id: z.string().optional().nullable(), // Nuevo campo para asignar cliente
+  dueDate: z.string()
+    .optional()
+    .nullable()
+    .refine((date) => {
+      if (!date) return true;
+      const parsedDate = new Date(date);
+      return !isNaN(parsedDate.getTime()) && parsedDate >= new Date();
+    }, "La fecha límite debe ser válida y en el futuro"),
+  client_id: z.string()
+    .optional()
+    .nullable()
+    .refine((id) => {
+      if (!id || id === '') return true;
+      return isValidUuid(id);
+    }, "ID de cliente inválido"),
 });
 
 interface ProjectContextType {
@@ -59,8 +72,14 @@ interface ProjectContextType {
   addProject: (projectData: z.infer<typeof ProjectFormSchema>) => Promise<void>;
   updateProject: (projectId: string, updatedFields: Partial<Project>) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  // Legacy note methods (backward compatibility)
   addNoteToProject: (projectId: string, title: string, content: string) => Promise<void>;
   deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
+  // New page methods
+  addPageToProject: (projectId: string, pageData: PageFormData) => Promise<void>;
+  updatePageInProject: (projectId: string, pageId: string, updatedFields: Partial<Page>) => Promise<void>;
+  deletePageFromProject: (projectId: string, pageId: string) => Promise<void>;
+  // Task methods
   addTaskToProject: (projectId: string, title: string, description?: string, start_date?: string, end_date?: string, priority?: Task['priority']) => Promise<void>;
   updateTaskStatus: (projectId: string, taskId: string, newStatus: Task['status']) => Promise<void>;
   updateTaskDailyStatus: (projectId: string, taskId: string, isDaily: boolean) => Promise<void>;
@@ -74,6 +93,12 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoading: isLoadingSession } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  
+  // Safety timeout to prevent infinite loading (15 seconds)
+  useLoadingTimeout(isLoadingProjects, setIsLoadingProjects, 15000);
+  
+  // Retry mechanism for failed requests
+  const { executeWithRetry } = useRetryableRequest();
 
   const fetchProjects = useCallback(async () => {
     if (!user) {
@@ -83,30 +108,68 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setIsLoadingProjects(true);
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    
+    const result = await executeWithRetry(
+      () => supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+      {
+        maxRetries: 2,
+        retryDelayMs: 1000,
+        timeoutMs: 8000
+      },
+      'proyectos'
+    );
+
+    if (!result) {
+      // Request failed after all retries, set empty state
+      setProjects([]);
+      setIsLoadingProjects(false);
+      return;
+    }
+
+    const { data, error } = result;
 
     if (error) {
       console.error("Error fetching projects:", error);
       showError("Error al cargar los proyectos.");
       setProjects([]);
-    } else {
-      // Normalizar tareas y notas: compatibilidad con estructuras antiguas
-      const projectsWithNormalizedData = data.map((project: any) => ({
+      setIsLoadingProjects(false);
+      return;
+    }
+
+    try {
+      // Normalize projects with both legacy notes and new pages
+      const projectsWithNormalizedData = data.map((project: Record<string, unknown>) => ({
         ...project,
         dueDate: project.due_date,
-        notes: (project.notes || []).map((note: any) => ({
+        // Legacy notes normalization
+        notes: (Array.isArray(project.notes) ? project.notes : []).map((note: Record<string, unknown>) => ({
           id: note.id ?? `${Date.now()}-${Math.random()}`,
           title: note.title ?? "",
           content: note.content ?? "",
           createdAt: note.createdAt ?? note.created_at ?? new Date().toISOString(),
         })),
-        tasks: (project.tasks || []).map((task: any) => ({
+        // New pages normalization
+        pages: (Array.isArray(project.pages) ? project.pages : []).map((page: Record<string, unknown>) => ({
+          id: page.id ?? `${Date.now()}-${Math.random()}`,
+          title: page.title ?? "",
+          content: page.content ?? "",
+          project_id: project.id,
+          page_type: page.page_type ?? 'general',
+          icon: page.icon,
+          is_favorited: page.is_favorited ?? false,
+          tags: Array.isArray(page.tags) ? page.tags : [],
+          template_id: page.template_id,
+          created_at: page.created_at ?? new Date().toISOString(),
+          updated_at: page.updated_at,
+        })),
+        // Tasks normalization
+        tasks: (Array.isArray(project.tasks) ? project.tasks : []).map((task: Record<string, unknown>) => ({
           id: task.id ?? `${Date.now()}-${Math.random()}`,
-          title: task.title ?? task.description ?? "", // mapear description antigua a title si es necesario
+          title: task.title ?? task.description ?? "",
           description: task.description_long ?? task.details ?? task.description ?? "",
           createdAt: task.createdAt ?? task.created_at ?? new Date().toISOString(),
           status: task.status || (task.completed ? 'completed' : 'not-started'),
@@ -116,9 +179,15 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
           priority: task.priority || 'medium',
         }))
       }));
+      
       setProjects(projectsWithNormalizedData as Project[]);
+    } catch (error) {
+      console.error("Error processing projects data:", error);
+      showError("Error al procesar los datos de proyectos.");
+      setProjects([]);
+    } finally {
+      setIsLoadingProjects(false);
     }
-    setIsLoadingProjects(false);
   }, [user]);
 
   useEffect(() => {
@@ -148,10 +217,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setProjects((prev) => [{ ...data, dueDate: data.due_date, notes: [], tasks: [] } as Project, ...prev]);
+      setProjects((prev) => [{ ...data, dueDate: data.due_date, notes: [], pages: [], tasks: [] } as Project, ...prev]);
       showSuccess("Proyecto añadido exitosamente.");
-    } catch (error: any) {
-      showError("Error al añadir el proyecto: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al añadir el proyecto: " + errorMessage);
       console.error("Error adding project:", error);
     }
   }, [user, setProjects]);
@@ -162,7 +232,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const fieldsToUpdate: Record<string, any> = { ...updatedFields };
+      const fieldsToUpdate: Record<string, unknown> = { ...updatedFields };
 
       if ('dueDate' in updatedFields) {
         fieldsToUpdate.due_date = updatedFields.dueDate === undefined ? null : updatedFields.dueDate;
@@ -185,8 +255,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Proyecto actualizado exitosamente.");
-    } catch (error: any) {
-      showError("Error al actualizar el proyecto: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar el proyecto: " + errorMessage);
       console.error("Error updating project:", error);
     }
   }, [user, setProjects]);
@@ -207,12 +278,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       setProjects((prev) => prev.filter((project) => project.id !== projectId));
       showSuccess("Proyecto eliminado exitosamente.");
-    } catch (error: any) {
-      showError("Error al eliminar el proyecto: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al eliminar el proyecto: " + errorMessage);
       console.error("Error deleting project:", error);
     }
   }, [user, setProjects]);
 
+  // Legacy note methods (for backward compatibility)
   const addNoteToProject = useCallback(async (projectId: string, title: string, content: string) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir notas.");
@@ -222,7 +295,12 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       const project = projects.find(p => p.id === projectId);
       if (!project) throw new Error("Proyecto no encontrado.");
 
-      const newNote: Note = { id: Date.now().toString(), title: title || "", content, createdAt: new Date().toISOString() };
+      const newNote: Note = { 
+        id: Date.now().toString(), 
+        title: title || "", 
+        content, 
+        createdAt: new Date().toISOString() 
+      };
       const updatedNotes = [...project.notes, newNote];
 
       await updateProject(projectId, { notes: updatedNotes });
@@ -232,8 +310,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Nota añadida.");
-    } catch (error: any) {
-      showError("Error al añadir la nota: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al añadir la nota: " + errorMessage);
       console.error("Error adding note:", error);
     }
   }, [user, projects, updateProject]);
@@ -256,12 +335,106 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Nota eliminada.");
-    } catch (error: any) {
-      showError("Error al eliminar la nota: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al eliminar la nota: " + errorMessage);
       console.error("Error deleting note:", error);
     }
   }, [user, projects, updateProject]);
 
+  // New page methods
+  const addPageToProject = useCallback(async (projectId: string, pageData: PageFormData) => {
+    if (!user) {
+      showError("Debes iniciar sesión para añadir páginas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const newPage: Page = {
+        id: Date.now().toString(),
+        title: pageData.title,
+        content: pageData.content,
+        project_id: projectId,
+        page_type: pageData.page_type,
+        icon: pageData.icon,
+        is_favorited: false,
+        tags: pageData.tags || [],
+        created_at: new Date().toISOString(),
+      };
+
+      const updatedPages = [...(project.pages || []), newPage];
+
+      await updateProject(projectId, { pages: updatedPages });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, pages: updatedPages } : p
+        )
+      );
+      showSuccess("Página añadida.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al añadir la página: " + errorMessage);
+      console.error("Error adding page:", error);
+    }
+  }, [user, projects, updateProject]);
+
+  const updatePageInProject = useCallback(async (projectId: string, pageId: string, updatedFields: Partial<Page>) => {
+    if (!user) {
+      showError("Debes iniciar sesión para actualizar páginas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedPages = (project.pages || []).map((page) =>
+        page.id === pageId 
+          ? { ...page, ...updatedFields, updated_at: new Date().toISOString() } 
+          : page
+      );
+
+      await updateProject(projectId, { pages: updatedPages });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, pages: updatedPages } : p
+        )
+      );
+      showSuccess("Página actualizada.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar la página: " + errorMessage);
+      console.error("Error updating page:", error);
+    }
+  }, [user, projects, updateProject]);
+
+  const deletePageFromProject = useCallback(async (projectId: string, pageId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para eliminar páginas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedPages = (project.pages || []).filter((page) => page.id !== pageId);
+
+      await updateProject(projectId, { pages: updatedPages });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, pages: updatedPages } : p
+        )
+      );
+      showSuccess("Página eliminada.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al eliminar la página: " + errorMessage);
+      console.error("Error deleting page:", error);
+    }
+  }, [user, projects, updateProject]);
+
+  // Task methods (unchanged)
   const addTaskToProject = useCallback(async (
     projectId: string,
     title: string,
@@ -298,8 +471,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Tarea añadida.");
-    } catch (error: any) {
-      showError("Error al añadir la tarea: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al añadir la tarea: " + errorMessage);
       console.error("Error adding task:", error);
     }
   }, [user, projects, updateProject]);
@@ -324,8 +498,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Estado de tarea actualizado.");
-    } catch (error: any) {
-      showError("Error al actualizar la tarea: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar la tarea: " + errorMessage);
       console.error("Error updating task status:", error);
     }
   }, [user, projects, updateProject]);
@@ -350,8 +525,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Estado de tarea diaria actualizado.");
-    } catch (error: any) {
-      showError("Error al actualizar el estado de tarea diaria: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar el estado de tarea diaria: " + errorMessage);
       console.error("Error updating daily task status:", error);
     }
   }, [user, projects, updateProject]);
@@ -376,8 +552,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Tarea actualizada.");
-    } catch (error: any) {
-      showError("Error al actualizar la tarea: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar la tarea: " + errorMessage);
       console.error("Error updating task:", error);
     }
   }, [user, projects, updateProject]);
@@ -400,8 +577,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       showSuccess("Tarea eliminada.");
-    } catch (error: any) {
-      showError("Error al eliminar la tarea: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al eliminar la tarea: " + errorMessage);
       console.error("Error deleting task:", error);
     }
   }, [user, projects, updateProject]);
@@ -414,8 +592,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         addProject,
         updateProject,
         deleteProject,
+        // Legacy note methods
         addNoteToProject,
         deleteNoteFromProject,
+        // New page methods
+        addPageToProject,
+        updatePageInProject,
+        deletePageFromProject,
+        // Task methods
         addTaskToProject,
         updateTaskStatus,
         updateTaskDailyStatus,

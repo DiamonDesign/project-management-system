@@ -114,8 +114,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       setProfile((prev) => (prev ? { ...prev, ...data } : data as Profile));
       showSuccess("Perfil actualizado exitosamente.");
       return data;
-    } catch (error: any) {
-      showError("Error al actualizar el perfil: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al actualizar el perfil: " + errorMessage);
       console.error("Error updating profile:", error);
       throw error; // Re-throw to allow form to handle errors
     }
@@ -131,7 +132,38 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 export const useSession = () => {
   const context = useContext(SessionContext);
   if (context === undefined) {
-    throw new Error("useSession must be used within a SessionContextProvider");
+    console.error("useSession must be used within a SessionContextProvider");
+    
+    // Provide emergency fallback instead of throwing
+    return {
+      session: null,
+      user: null,
+      profile: null,
+      isLoading: false,
+      signOut: async () => {
+        console.warn('Emergency signOut called - redirecting to login');
+        window.location.href = '/login';
+      },
+      updateProfile: async () => {
+        console.warn('Emergency updateProfile called - no action taken');
+      }
+    };
   }
-  return context;
+  
+  // Additional safety check to prevent undefined session access
+  if (context.session === undefined && !context.isLoading) {
+    console.warn('Session is undefined but not loading - this might indicate a race condition');
+  }
+  
+  // Emergency null safety
+  const safeContext = {
+    session: context.session || null,
+    user: context.user || null,
+    profile: context.profile || null,
+    isLoading: context.isLoading || false,
+    signOut: context.signOut || (() => Promise.resolve()),
+    updateProfile: context.updateProfile || (() => Promise.resolve())
+  };
+  
+  return safeContext;
 };

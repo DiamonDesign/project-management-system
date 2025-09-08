@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading State Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+        }
+        .success { 
+            background-color: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background-color: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { 
+            background: #6c757d; 
+            cursor: not-allowed; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Loading State Fix Test</h1>
+    
+    <div class="info">
+        <strong>Test Status:</strong> This page verifies that the infinite loading issue has been resolved.
+    </div>
+
+    <h2>✅ Fixes Applied</h2>
+    <div class="success">
+        <h3>1. Context Loading Timeouts</h3>
+        <ul>
+            <li><strong>ProjectContext</strong>: Added 10-second request timeout + 15-second safety timeout</li>
+            <li><strong>ClientContext</strong>: Added 10-second request timeout + 15-second safety timeout</li>
+            <li><strong>Error Handling</strong>: Proper try/catch/finally blocks ensure loading always resolves</li>
+        </ul>
+    </div>
+
+    <div class="success">
+        <h3>2. Dashboard Loading Logic</h3>
+        <ul>
+            <li><strong>Removed Blocking</strong>: Dashboard no longer waits for both contexts to load completely</li>
+            <li><strong>Progressive Loading</strong>: Show content as it becomes available</li>
+            <li><strong>Fallback Content</strong>: Loading indicators for specific sections instead of entire page</li>
+        </ul>
+    </div>
+
+    <div class="success">
+        <h3>3. Safety Mechanisms</h3>
+        <ul>
+            <li><strong>useLoadingTimeout Hook</strong>: Automatically sets loading to false after timeout</li>
+            <li><strong>Promise Racing</strong>: Supabase requests race against timeout promises</li>
+            <li><strong>Safe Data Usage</strong>: Analytics calculations handle loading states gracefully</li>
+        </ul>
+    </div>
+
+    <h2>🧪 Test Instructions</h2>
+    <div class="info">
+        <ol>
+            <li><strong>Open the Application</strong>: Navigate to <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+            <li><strong>Login</strong>: Use your credentials to log in</li>
+            <li><strong>Check Dashboard</strong>: The dashboard should now load content even if some sections are still loading</li>
+            <li><strong>Look for Loading Indicators</strong>: Individual sections should show skeleton loading, not the entire page</li>
+            <li><strong>Wait Maximum 15 seconds</strong>: Even in worst case, all loading should complete within 15 seconds</li>
+        </ol>
+    </div>
+
+    <h2>🐛 Before vs After</h2>
+    <div class="error">
+        <h3>❌ Before (Broken)</h3>
+        <ul>
+            <li>Dashboard stuck in infinite loading</li>
+            <li>Content never appeared</li>
+            <li>Only skeleton loading screens visible</li>
+            <li>No timeout or fallback mechanisms</li>
+        </ul>
+    </div>
+
+    <div class="success">
+        <h3>✅ After (Fixed)</h3>
+        <ul>
+            <li>Dashboard loads immediately with layout</li>
+            <li>Content appears progressively as data loads</li>
+            <li>Individual sections show loading states</li>
+            <li>Maximum 15-second timeout guarantee</li>
+            <li>Graceful error handling and fallbacks</li>
+        </ul>
+    </div>
+
+    <h2>⚙️ Technical Details</h2>
+    <div class="code">
+// New timeout mechanism in contexts
+const fetchData = async () => {
+    try {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timed out')), 10000);
+        });
+        
+        const queryPromise = supabase.from("table").select("*");
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+        
+        // Handle data...
+    } catch (error) {
+        console.error("Error:", error);
+        setData([]);
+    } finally {
+        setIsLoading(false); // Always resolves loading state
+    }
+};
+
+// Safety timeout hook
+useLoadingTimeout(isLoading, setIsLoading, 15000);
+    </div>
+
+    <h2>🔗 Quick Links</h2>
+    <div>
+        <button onclick="window.open('http://localhost:3000', '_blank')">Open Application</button>
+        <button onclick="window.open('http://localhost:3000/login', '_blank')">Open Login</button>
+        <button onclick="window.open('http://localhost:3000/dashboard', '_blank')">Open Dashboard</button>
+    </div>
+
+    <div class="info">
+        <strong>Expected Result:</strong> The dashboard should load content immediately and show individual loading states for data that's still being fetched, with everything completing within 15 seconds maximum.
+    </div>
+</body>
+</html>

@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Pencil, Save, X } from "lucide-react";
 import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles
+import LazyRichTextEditor from './LazyRichTextEditor';
 import { Input } from "@/components/ui/input";
+import { sanitizeHtml, validationSchemas } from "@/lib/security";
 
 interface NotesSectionProps {
   projectId: string;
@@ -22,7 +22,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
   const [editingNoteTitle, setEditingNoteTitle] = useState("");
   const [editingNoteContent, setEditingNoteContent] = useState("");
 
-  const modules = {
+  const modules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, false] }],
       ['bold', 'italic', 'underline', 'strike'],
@@ -30,24 +30,47 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
       ['link'],
       ['clean']
     ],
-  };
+  }), []);
 
-  const formats = [
+  const formats = useMemo(() => [
     'header',
     'bold', 'italic', 'underline', 'strike',
     'list', 'bullet',
     'link'
-  ];
+  ], []);
 
   const handleAddNote = () => {
-    if ((newNoteTitle.trim() === "" && (newNoteContent.trim() === "" || newNoteContent === "<p><br></p>"))) {
-      showError("La nota debe tener al menos un título o contenido.");
-      return;
+    try {
+      // Validate input using Zod schemas
+      const titleResult = validationSchemas.noteTitle.safeParse(newNoteTitle);
+      const contentResult = validationSchemas.noteContent.safeParse(newNoteContent);
+      
+      if (!titleResult.success) {
+        showError(titleResult.error.errors[0].message);
+        return;
+      }
+      
+      if (!contentResult.success) {
+        showError(contentResult.error.errors[0].message);
+        return;
+      }
+      
+      const sanitizedTitle = titleResult.data;
+      const sanitizedContent = contentResult.data;
+      
+      if ((sanitizedTitle.trim() === "" && (sanitizedContent.trim() === "" || sanitizedContent === "<p><br></p>"))) {
+        showError("La nota debe tener al menos un título o contenido.");
+        return;
+      }
+      
+      addNoteToProject(projectId, sanitizedTitle, sanitizedContent);
+      setNewNoteTitle("");
+      setNewNoteContent("");
+      showSuccess("Nota añadida.");
+    } catch (error) {
+      showError("Error al procesar la nota. Por favor, inténtalo de nuevo.");
+      console.error('Error adding note:', error);
     }
-    addNoteToProject(projectId, newNoteTitle.trim(), newNoteContent.trim());
-    setNewNoteTitle("");
-    setNewNoteContent("");
-    showSuccess("Nota añadida.");
   };
 
   const handleDeleteNote = (noteId: string) => {
@@ -62,19 +85,43 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
   };
 
   const handleSaveNote = (noteId: string) => {
-    if ((editingNoteTitle.trim() === "" && (editingNoteContent.trim() === "" || editingNoteContent === "<p><br></p>"))) {
-      showError("La nota debe tener al menos un título o contenido.");
-      return;
-    }
-    const updatedNotes = project?.notes.map(note =>
-      note.id === noteId ? { ...note, title: editingNoteTitle.trim(), content: editingNoteContent.trim() } : note
-    );
-    if (project && updatedNotes) {
-      updateProject(projectId, { notes: updatedNotes });
-      showSuccess("Nota actualizada.");
-      setEditingNoteId(null);
-      setEditingNoteTitle("");
-      setEditingNoteContent("");
+    try {
+      // Validate input using Zod schemas
+      const titleResult = validationSchemas.noteTitle.safeParse(editingNoteTitle);
+      const contentResult = validationSchemas.noteContent.safeParse(editingNoteContent);
+      
+      if (!titleResult.success) {
+        showError(titleResult.error.errors[0].message);
+        return;
+      }
+      
+      if (!contentResult.success) {
+        showError(contentResult.error.errors[0].message);
+        return;
+      }
+      
+      const sanitizedTitle = titleResult.data;
+      const sanitizedContent = contentResult.data;
+      
+      if ((sanitizedTitle.trim() === "" && (sanitizedContent.trim() === "" || sanitizedContent === "<p><br></p>"))) {
+        showError("La nota debe tener al menos un título o contenido.");
+        return;
+      }
+      
+      const updatedNotes = project?.notes.map(note =>
+        note.id === noteId ? { ...note, title: sanitizedTitle, content: sanitizedContent } : note
+      );
+      
+      if (project && updatedNotes) {
+        updateProject(projectId, { notes: updatedNotes });
+        showSuccess("Nota actualizada.");
+        setEditingNoteId(null);
+        setEditingNoteTitle("");
+        setEditingNoteContent("");
+      }
+    } catch (error) {
+      showError("Error al actualizar la nota. Por favor, inténtalo de nuevo.");
+      console.error('Error saving note:', error);
     }
   };
 
@@ -96,7 +143,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
       <CardContent>
         <div className="mb-4">
           <Input placeholder="Título de la nota (opcional)" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} className="mb-2" />
-          <ReactQuill
+          <LazyRichTextEditor
             theme="snow"
             value={newNoteContent}
             onChange={setNewNoteContent}
@@ -117,7 +164,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                   {editingNoteId === note.id ? (
                     <>
                       <Input placeholder="Título de la nota (opcional)" value={editingNoteTitle} onChange={(e) => setEditingNoteTitle(e.target.value)} className="mb-2" />
-                      <ReactQuill
+                      <LazyRichTextEditor
                         theme="snow"
                         value={editingNoteContent}
                         onChange={setEditingNoteContent}
@@ -129,7 +176,10 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                   ) : (
                     <>
                       {note.title && <h4 className="font-semibold mb-2 text-sm">{note.title}</h4>}
-                      <div className="flex-1 pr-2 text-sm quill-content" dangerouslySetInnerHTML={{ __html: note.content }} />
+                      <div 
+                        className="flex-1 pr-2 text-sm quill-content" 
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(note.content) }} 
+                      />
                     </>
                   )}
                   <div className="flex justify-end space-x-1 mt-2">
