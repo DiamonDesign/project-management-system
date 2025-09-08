@@ -24,17 +24,17 @@ export const AddActionsDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <AddProjectDialog onAddProject={addProject}>
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevenir que el dropdown se cierre */}
-            <Button variant="ghost" className="w-full justify-start">
-              Proyecto
-            </Button>
+          {/* El DropdownMenuItem en sí mismo actuará como el disparador del diálogo. */}
+          {/* Se ha eliminado el Button redundante dentro de DropdownMenuItem. */}
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            Proyecto
           </DropdownMenuItem>
         </AddProjectDialog>
         <AddTaskDialog>
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevenir que el dropdown se cierre */}
-            <Button variant="ghost" className="w-full justify-start">
-              Tarea
-            </Button>
+          {/* El DropdownMenuItem en sí mismo actuará como el disparador del diálogo. */}
+          {/* Se ha eliminado el Button redundante dentro de DropdownMenuItem. */}
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            Tarea
           </DropdownMenuItem>
         </AddTaskDialog>
       </DropdownMenuContent>
