@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -35,9 +36,11 @@ import { showError, showSuccess } from "@/utils/toast";
 
 const TaskFormSchema = z.object({
   projectId: z.string().min(1, { message: "Debes seleccionar un proyecto." }),
-  description: z.string().min(2, { message: "La descripción de la tarea debe tener al menos 2 caracteres." }),
+  title: z.string().min(2, { message: "El título de la tarea debe tener al menos 2 caracteres." }),
+  description: z.string().optional().or(z.literal("")),
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
 });
 
 interface AddTaskDialogProps {
@@ -51,9 +54,11 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     resolver: zodResolver(TaskFormSchema),
     defaultValues: {
       projectId: "",
+      title: "",
       description: "",
       startDate: undefined,
       endDate: undefined,
+      priority: "medium",
     },
   });
 
@@ -61,9 +66,11 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     try {
       await addTaskToProject(
         values.projectId,
-        values.description,
+        values.title,
+        values.description || undefined,
         values.startDate || undefined,
-        values.endDate || undefined
+        values.endDate || undefined,
+        values.priority || "medium"
       );
       form.reset();
       onOpenChange(false); // Close dialog using onOpenChange
@@ -116,13 +123,48 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
             />
             <FormField
               control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Título de la Tarea</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Título corto" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descripción de la Tarea</FormLabel>
+                  <FormLabel>Descripción Detallada (Opcional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Diseñar la página de inicio" {...field} />
+                    <Textarea placeholder="Descripción detallada..." {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prioridad</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona prioridad" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="low">Baja</SelectItem>
+                      <SelectItem value="medium">Media</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -171,7 +213,7 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
               name="endDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Fin (Opcional)</FormLabel>
+                  <FormLabel>Fecha de Fin / Límite (Opcional)</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>

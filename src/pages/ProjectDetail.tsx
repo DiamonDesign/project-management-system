@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
-import { useProjectContext, Task } from "@/context/ProjectContext"; // Importar Task
+import { useProjectContext, Task } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +85,7 @@ const ProjectDetail = () => {
 
   const assignedClient = project.client_id ? clients.find(c => c.id === project.client_id) : null;
 
-  const completedTasks = project.tasks.filter(task => task.status === 'completed').length; // Usar el nuevo campo 'status'
+  const completedTasks = project.tasks.filter(task => task.status === 'completed').length;
   const totalTasks = project.tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -157,16 +157,16 @@ const ProjectDetail = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="tasks" className="w-full"> {/* Por defecto, la pestaña de tareas */}
+      <Tabs defaultValue="tasks" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="notes">Notas</TabsTrigger>
           <TabsTrigger value="tasks">Tareas</TabsTrigger>
+          <TabsTrigger value="notes">Notas</TabsTrigger>
         </TabsList>
-        <TabsContent value="notes">
-          <NotesSection projectId={project.id} />
-        </TabsContent>
         <TabsContent value="tasks">
           <TasksSection projectId={project.id} />
+        </TabsContent>
+        <TabsContent value="notes">
+          <NotesSection projectId={project.id} />
         </TabsContent>
       </Tabs>
       <MadeWithDyad />

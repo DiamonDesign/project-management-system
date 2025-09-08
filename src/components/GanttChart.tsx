@@ -17,11 +17,8 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
     return <p className="text-muted-foreground text-sm">No hay tareas con fechas definidas para mostrar en el diagrama de Gantt.</p>;
   }
 
-  // Calcular el rango de fechas para el Gantt
   const minDate = new Date(Math.min(...allTasks.map(task => new Date(task.start_date!).getTime())));
   const maxDate = new Date(Math.max(...allTasks.map(task => new Date(task.end_date!).getTime())));
-
-  // Extender el rango para incluir semanas completas y un poco de margen
   const startDate = startOfWeek(minDate, { locale: es });
   const endDate = endOfWeek(addDays(maxDate, 7), { locale: es }); // Una semana extra de margen
 
@@ -31,7 +28,6 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
   return (
     <div className="overflow-x-auto relative">
       <div className="flex flex-col min-w-max">
-        {/* Encabezado de fechas */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-background z-10">
           <div className="w-48 flex-shrink-0 p-2 font-semibold text-sm">Tarea / Proyecto</div>
           {daysInChart.map((day, index) => (
@@ -48,7 +44,6 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
           ))}
         </div>
 
-        {/* Filas de tareas */}
         <div className="flex flex-col">
           {allTasks.map((task, taskIndex) => {
             const taskStartDate = new Date(task.start_date!);
@@ -57,17 +52,10 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
             const offsetDays = differenceInDays(taskStartDate, startDate);
             const durationDays = differenceInDays(taskEndDate, taskStartDate) + 1;
 
-            const leftPosition = (offsetDays / totalDays) * 100;
-            const width = (durationDays / totalDays) * 100;
-
-            // Calcular la posición en días para el CSS grid
-            const gridColumnStart = differenceInDays(taskStartDate, startDate) + 2; // +1 para el día, +1 para la columna del nombre
-            const gridColumnEnd = differenceInDays(taskEndDate, startDate) + 3; // +1 para el día, +1 para la columna del nombre, +1 para que incluya el día final
-
             return (
               <div key={task.id} className="flex items-center border-b border-gray-100 dark:border-gray-800 h-10">
-                <div className="w-48 flex-shrink-0 p-2 text-sm truncate" title={`${task.description} (${task.projectName})`}>
-                  <span className="font-medium">{task.description}</span>
+                <div className="w-48 flex-shrink-0 p-2 text-sm truncate" title={`${task.title} (${task.projectName})`}>
+                  <span className="font-medium">{task.title}</span>
                   <span className="text-xs text-muted-foreground block">{task.projectName}</span>
                 </div>
                 <div className="flex-grow relative h-full grid" style={{ gridTemplateColumns: `repeat(${totalDays}, 1fr)` }}>
@@ -84,7 +72,7 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
                       top: '50%',
                       transform: 'translateY(-50%)',
                     }}
-                    title={`${task.description} (${format(taskStartDate, "PPP", { locale: es })} - ${format(taskEndDate, "PPP", { locale: es })})`}
+                    title={`${task.title} (${format(taskStartDate, "PPP", { locale: es })} - ${format(taskEndDate, "PPP", { locale: es })})`}
                   >
                     {durationDays > 2 && format(taskStartDate, "dd", { locale: es })}
                     {durationDays > 4 && ` - ${format(taskEndDate, "dd", { locale: es })}`}

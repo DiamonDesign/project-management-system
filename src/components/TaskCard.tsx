@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
 interface TaskCardProps {
   task: Task;
   projectId: string;
-  onEdit: (projectId: string, taskId: string, newDescription: string, start_date?: string, end_date?: string) => void; // Actualizado
-  onDelete: (projectId: string, taskId: string) => void; // Actualizado
-  onUpdateStatus: (projectId: string, taskId: string, newStatus: Task["status"]) => void; // Actualizado
+  onEdit: (projectId: string, taskId: string, updatedFields: Partial<Task>) => void;
+  onDelete: (projectId: string, taskId: string) => void;
+  onUpdateStatus: (projectId: string, taskId: string, newStatus: Task["status"]) => void;
   draggableProps?: DraggableProvidedDraggableProps;
   dragHandleProps?: DraggableProvidedDragHandleProps;
   innerRef?: (element: HTMLElement | null) => void;
@@ -32,34 +32,52 @@ interface TaskCardProps {
 
 export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, draggableProps, dragHandleProps, innerRef }: TaskCardProps) => {
   const [editing, setEditing] = useState(false);
-  const [editedDescription, setEditedDescription] = useState(task.description);
+  const [editedTitle, setEditedTitle] = useState(task.title);
+  const [editedDescription, setEditedDescription] = useState(task.description || "");
   const [editedStartDate, setEditedStartDate] = useState<Date | undefined>(task.start_date ? new Date(task.start_date) : undefined);
   const [editedEndDate, setEditedEndDate] = useState<Date | undefined>(task.end_date ? new Date(task.end_date) : undefined);
+  const [editedPriority, setEditedPriority] = useState<Task['priority']>(task.priority || 'medium');
 
   const handleSave = () => {
-    if (editedDescription.trim()) {
+    if (editedTitle.trim()) {
       onEdit(
-        projectId, // Pasar projectId
+        projectId,
         task.id,
-        editedDescription.trim(),
-        editedStartDate ? format(editedStartDate, "yyyy-MM-dd") : undefined,
-        editedEndDate ? format(editedEndDate, "yyyy-MM-dd") : undefined
+        {
+          title: editedTitle.trim(),
+          description: editedDescription.trim(),
+          start_date: editedStartDate ? format(editedStartDate, "yyyy-MM-dd") : undefined,
+          end_date: editedEndDate ? format(editedEndDate, "yyyy-MM-dd") : undefined,
+          priority: editedPriority,
+        }
       );
       setEditing(false);
     } else {
-      showError("La descripción de la tarea no puede estar vacía.");
+      showError("El nombre de la tarea no puede estar vacío.");
     }
   };
 
   const handleCancel = () => {
     setEditing(false);
-    setEditedDescription(task.description);
+    setEditedTitle(task.title);
+    setEditedDescription(task.description || "");
     setEditedStartDate(task.start_date ? new Date(task.start_date) : undefined);
     setEditedEndDate(task.end_date ? new Date(task.end_date) : undefined);
+    setEditedPriority(task.priority || 'medium');
   };
 
   const handleStatusChange = (value: Task["status"]) => {
-    onUpdateStatus(projectId, task.id, value); // Pasar projectId
+    onUpdateStatus(projectId, task.id, value);
+  };
+
+  const priorityColor = (p?: Task['priority']) => {
+    switch (p) {
+      case 'high': return 'text-red-600';
+      case 'low': return 'text-green-600';
+      case 'medium':
+      default:
+        return 'text-yellow-600';
+    }
   };
 
   return (
@@ -73,12 +91,16 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
         {editing ? (
           <>
             <Input
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              className="flex-1 font-medium"
+              placeholder="Título de la tarea"
+            />
+            <textarea
               value={editedDescription}
               onChange={(e) => setEditedDescription(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
-              }}
-              className="flex-1"
+              className="w-full border rounded p-2 text-sm resize-y h-24"
+              placeholder="Descripción detallada (opcional)"
             />
             <div className="flex gap-2 mt-2">
               <Popover>
@@ -86,7 +108,7 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full pl-3 text-left font-normal",
                       !editedStartDate && "text-muted-foreground"
                     )}
                   >
@@ -109,12 +131,12 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full pl-3 text-left font-normal",
                       !editedEndDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedEndDate ? format(editedEndDate, "PPP", { locale: es }) : <span>Fecha fin</span>}
+                    {editedEndDate ? format(editedEndDate, "PPP", { locale: es }) : <span>Fecha fin (límite)</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -128,12 +150,32 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Select onValueChange={(v) => setEditedPriority(v as Task['priority'])} defaultValue={editedPriority}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Prioridad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baja</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </>
         ) : (
           <>
-            <span className={`flex-1 text-sm ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}>
-              {task.description}
-            </span>
+            <div className="flex items-center justify-between">
+              <span className={`flex-1 text-sm ${task.status === "completed" ? "line-through text-muted-foreground" : "font-medium"}`}>
+                {task.title}
+              </span>
+              <span className={`text-xs ${priorityColor(task.priority)}`}>{task.priority?.toUpperCase()}</span>
+            </div>
+            {task.description && (
+              <div className="text-xs text-muted-foreground">
+                {task.description}
+              </div>
+            )}
             {(task.start_date || task.end_date) && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CalendarIcon className="h-3 w-3" />
@@ -170,7 +212,7 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
                 <Pencil className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => onDelete(projectId, task.id)} className="text-destructive hover:bg-destructive/10 p-1 h-auto"> {/* Pasar projectId */}
+            <Button variant="ghost" size="sm" onClick={() => onDelete(projectId, task.id)} className="text-destructive hover:bg-destructive/10 p-1 h-auto">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

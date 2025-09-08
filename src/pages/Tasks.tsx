@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useSession } from "@/context/SessionContext";
 import { Navigate } from "react-router-dom";
-import { useProjectContext, Task, Project } from "@/context/ProjectContext";
+import { useProjectContext, Task } from "@/context/ProjectContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskCard } from "@/components/TaskCard";
@@ -12,7 +12,7 @@ import { showSuccess, showError } from "@/utils/toast";
 
 const Tasks = () => {
   const { session, isLoading: isLoadingSession } = useSession();
-  const { projects, isLoadingProjects, updateProject, updateTaskStatus, updateTaskDailyStatus, deleteTaskFromProject } = useProjectContext();
+  const { projects, isLoadingProjects, updateProject, updateTaskStatus, updateTaskDailyStatus, deleteTaskFromProject, updateTask } = useProjectContext();
 
   if (isLoadingSession || isLoadingProjects) {
     return (
@@ -34,17 +34,9 @@ const Tasks = () => {
   const nonDailyTasks = allTasksWithProjectInfo.filter(task => !task.is_daily_task);
   const dailyTasks = allTasksWithProjectInfo.filter(task => task.is_daily_task);
 
-  const handleEditTask = (projectId: string, taskId: string, newDescription: string, start_date?: string, end_date?: string) => {
-    const projectToUpdate = projects.find(p => p.id === projectId);
-    if (projectToUpdate) {
-      const updatedTasks = projectToUpdate.tasks.map(t =>
-        t.id === taskId ? { ...t, description: newDescription, start_date: start_date, end_date: end_date } : t
-      );
-      updateProject(projectId, { tasks: updatedTasks });
-      showSuccess("Tarea actualizada.");
-    } else {
-      showError("Proyecto no encontrado para actualizar la tarea.");
-    }
+  const handleEditTask = (projectId: string, taskId: string, updatedFields: Partial<Task>) => {
+    updateTask(projectId, taskId, updatedFields);
+    showSuccess("Tarea actualizada.");
   };
 
   const handleDeleteTask = (projectId: string, taskId: string) => {
@@ -62,7 +54,6 @@ const Tasks = () => {
       return;
     }
 
-    // Si se suelta en la misma lista y misma posición, no hacer nada
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
@@ -73,14 +64,11 @@ const Tasks = () => {
     const isMovingToDaily = destination.droppableId === 'daily-tasks';
     const isMovingFromDaily = source.droppableId === 'daily-tasks';
 
-    // Solo actualizar si el estado de tarea diaria realmente cambia
     if (isMovingToDaily && !draggedTask.is_daily_task) {
       updateTaskDailyStatus(draggedTask.projectId, draggedTask.id, true);
     } else if (isMovingFromDaily && draggedTask.is_daily_task) {
       updateTaskDailyStatus(draggedTask.projectId, draggedTask.id, false);
     }
-    // La reordenación dentro de la misma lista no se maneja aquí,
-    // ya que el estado se actualiza al cambiar is_daily_task y se re-renderiza.
   };
 
   const renderTaskListColumn = (tasks: (Task & { projectName: string; projectId: string })[], droppableId: string, title: string) => (
@@ -132,7 +120,7 @@ const Tasks = () => {
       <h1 className="text-3xl font-bold mb-6">Gestión de Tareas</h1>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 h-[calc(100vh-350px)]"> {/* Altura ajustada para dejar espacio al Gantt */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 h-[calc(100vh-350px)]">
           {renderTaskListColumn(nonDailyTasks, 'all-tasks', 'Todas las Tareas')}
           {renderTaskListColumn(dailyTasks, 'daily-tasks', 'Tareas del Día')}
         </div>

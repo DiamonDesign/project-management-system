@@ -7,22 +7,25 @@ import { useProjectContext, Task } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
 import { TaskCard } from "@/components/TaskCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TasksSectionProps {
   projectId: string;
 }
 
 export const TasksSection = ({ projectId }: TasksSectionProps) => {
-  const { projects, addTaskToProject, deleteTaskFromProject, updateProject, updateTaskStatus } = useProjectContext();
+  const { projects, addTaskToProject, deleteTaskFromProject, updateProject, updateTaskStatus, updateTask } = useProjectContext();
   const project = projects.find(p => p.id === projectId);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
 
   const handleAddTask = () => {
-    if (newTaskDescription.trim()) {
-      addTaskToProject(projectId, newTaskDescription.trim());
+    if (newTaskTitle.trim()) {
+      addTaskToProject(projectId, newTaskTitle.trim(), newTaskDescription.trim());
+      setNewTaskTitle("");
       setNewTaskDescription("");
     } else {
-      showError("La descripción de la tarea no puede estar vacía.");
+      showError("El título de la tarea no puede estar vacío.");
     }
   };
 
@@ -30,14 +33,9 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
     deleteTaskFromProject(projectId, taskId);
   };
 
-  const handleEditTask = (taskId: string, newDescription: string, start_date?: string, end_date?: string) => {
-    if (project) {
-      const updatedTasks = project.tasks.map(task =>
-        task.id === taskId ? { ...task, description: newDescription, start_date, end_date } : task
-      );
-      updateProject(projectId, { tasks: updatedTasks });
-      showSuccess("Tarea actualizada.");
-    }
+  const handleEditTask = (taskId: string, updatedFields: Partial<Task>) => {
+    updateTask(projectId, taskId, updatedFields);
+    showSuccess("Tarea actualizada.");
   };
 
   const handleUpdateTaskStatus = (taskId: string, newStatus: Task['status']) => {
@@ -81,7 +79,7 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
           <h3 className={`font-semibold text-lg mb-3 ${textColor}`}>{title} ({tasks.length})</h3>
           <ScrollArea className="h-96 w-full pr-2 flex-grow">
             {tasks.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No hay tareas {title.toLowerCase().replace('sin empezar', 'sin empezar')}.</p>
+              <p className="text-muted-foreground text-sm">No hay tareas {title.toLowerCase()}.</p>
             ) : (
               <div className="space-y-3">
                 {tasks.map((task, index) => (
@@ -90,9 +88,9 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
                       <TaskCard
                         key={task.id}
                         task={task}
-                        projectId={projectId} // Asegurar que projectId se pasa aquí
-                        onEdit={(pId, tId, desc, start, end) => handleEditTask(tId, desc, start, end)} // Corregida la firma
-                        onDelete={(pId, tId) => handleDeleteTask(tId)} // Corregida la firma
+                        projectId={projectId}
+                        onEdit={(pId, tId, updatedFields) => handleEditTask(tId, updatedFields)}
+                        onDelete={(pId, tId) => handleDeleteTask(tId)}
                         onUpdateStatus={handleUpdateTaskStatus}
                         draggableProps={providedDraggable.draggableProps}
                         dragHandleProps={providedDraggable.dragHandleProps}
@@ -116,16 +114,21 @@ export const TasksSection = ({ projectId }: TasksSectionProps) => {
         <CardTitle>Gestión de Tareas (Kanban)</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex space-x-2 mb-4">
+        <div className="flex flex-col md:flex-row gap-2 mb-4">
           <Input
-            placeholder="Añadir nueva tarea..."
-            value={newTaskDescription}
-            onChange={(e) => setNewTaskDescription(e.target.value)}
+            placeholder="Título de la tarea..."
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 handleAddTask();
               }
             }}
+          />
+          <Textarea
+            placeholder="Descripción detallada (opcional)"
+            value={newTaskDescription}
+            onChange={(e) => setNewTaskDescription(e.target.value)}
           />
           <Button onClick={handleAddTask}>Añadir</Button>
         </div>

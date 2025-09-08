@@ -7,18 +7,21 @@ import { showSuccess, showError } from "@/utils/toast";
 // Define las interfaces para Nota y Tarea
 interface Note {
   id: string;
+  title?: string;
   content: string;
   createdAt: string;
 }
 
 export interface Task {
   id: string;
-  description: string;
-  status: 'not-started' | 'in-progress' | 'completed'; // Cambiado de 'completed: boolean'
+  title: string; // Nombre corto de la tarea
+  description?: string; // Descripción detallada
+  status: 'not-started' | 'in-progress' | 'completed';
   createdAt: string;
-  start_date?: string; // Nuevo campo
-  end_date?: string;   // Nuevo campo
-  is_daily_task?: boolean; // NUEVO CAMPO
+  start_date?: string;
+  end_date?: string;   // Fecha límite / due date
+  is_daily_task?: boolean;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 // Define la interfaz para Proyecto, incluyendo notas y tareas
@@ -56,11 +59,12 @@ interface ProjectContextType {
   addProject: (projectData: z.infer<typeof ProjectFormSchema>) => Promise<void>;
   updateProject: (projectId: string, updatedFields: Partial<Project>) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
-  addNoteToProject: (projectId: string, content: string) => Promise<void>;
+  addNoteToProject: (projectId: string, title: string, content: string) => Promise<void>;
   deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
-  addTaskToProject: (projectId: string, description: string, start_date?: string, end_date?: string) => Promise<void>; // Actualizado
+  addTaskToProject: (projectId: string, title: string, description?: string, start_date?: string, end_date?: string, priority?: Task['priority']) => Promise<void>;
   updateTaskStatus: (projectId: string, taskId: string, newStatus: Task['status']) => Promise<void>;
-  updateTaskDailyStatus: (projectId: string, taskId: string, isDaily: boolean) => Promise<void>; // NUEVA FUNCIÓN
+  updateTaskDailyStatus: (projectId: string, taskId: string, isDaily: boolean) => Promise<void>;
+  updateTask: (projectId: string, taskId: string, updatedFields: Partial<Task>) => Promise<void>;
   deleteTaskFromProject: (projectId: string, taskId: string) => Promise<void>;
 }
 
@@ -90,19 +94,26 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al cargar los proyectos.");
       setProjects([]);
     } else {
-      // Mapear sobre los datos obtenidos para asegurar que las tareas tengan el nuevo campo 'status'
-      // y mapear 'due_date' de la DB a 'dueDate' para la interfaz de la aplicación
-      const projectsWithNormalizedData = data.map(project => ({
+      // Normalizar tareas y notas: compatibilidad con estructuras antiguas
+      const projectsWithNormalizedData = data.map((project: any) => ({
         ...project,
-        dueDate: project.due_date, // Mapear de snake_case (DB) a camelCase (App)
-        tasks: project.tasks.map((task: any) => ({ // 'any' para compatibilidad con datos antiguos
-          id: task.id,
-          description: task.description,
-          createdAt: task.createdAt,
-          status: task.status || (task.completed ? 'completed' : 'not-started'), // Inferir status si no está presente
-          start_date: task.start_date, // Asegurar que start_date esté presente
-          end_date: task.end_date,     // Asegurar que end_date esté presente
-          is_daily_task: task.is_daily_task || false, // Inicializar el nuevo campo
+        dueDate: project.due_date,
+        notes: (project.notes || []).map((note: any) => ({
+          id: note.id ?? `${Date.now()}-${Math.random()}`,
+          title: note.title ?? "",
+          content: note.content ?? "",
+          createdAt: note.createdAt ?? note.created_at ?? new Date().toISOString(),
+        })),
+        tasks: (project.tasks || []).map((task: any) => ({
+          id: task.id ?? `${Date.now()}-${Math.random()}`,
+          title: task.title ?? task.description ?? "", // mapear description antigua a title si es necesario
+          description: task.description_long ?? task.details ?? task.description ?? "",
+          createdAt: task.createdAt ?? task.created_at ?? new Date().toISOString(),
+          status: task.status || (task.completed ? 'completed' : 'not-started'),
+          start_date: task.start_date,
+          end_date: task.end_date,
+          is_daily_task: task.is_daily_task || false,
+          priority: task.priority || 'medium',
         }))
       }));
       setProjects(projectsWithNormalizedData as Project[]);
@@ -122,12 +133,12 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const { dueDate, ...rest } = projectData; // Desestructurar dueDate
+      const { dueDate, ...rest } = projectData;
       const newProject = {
         user_id: user.id,
         ...rest,
-        due_date: dueDate === undefined ? null : dueDate, // Mapear a snake_case para la DB
-        client_id: projectData.client_id === "" ? null : projectData.client_id, // Asegurar null si está vacío
+        due_date: dueDate === undefined ? null : dueDate,
+        client_id: projectData.client_id === "" ? null : projectData.client_id,
       };
       const { data, error } = await supabase
         .from("projects")
@@ -137,7 +148,6 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      // Al actualizar el estado, mapear de nuevo a camelCase para la interfaz de la aplicación
       setProjects((prev) => [{ ...data, dueDate: data.due_date, notes: [], tasks: [] } as Project, ...prev]);
       showSuccess("Proyecto añadido exitosamente.");
     } catch (error: any) {
@@ -152,15 +162,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const fieldsToUpdate: Record<string, any> = { ...updatedFields }; // Usar Record<string, any> para claves dinámicas
+      const fieldsToUpdate: Record<string, any> = { ...updatedFields };
 
-      // Mapear dueDate a due_date si está presente
       if ('dueDate' in updatedFields) {
         fieldsToUpdate.due_date = updatedFields.dueDate === undefined ? null : updatedFields.dueDate;
-        delete fieldsToUpdate.dueDate; // Eliminar la versión camelCase
+        delete fieldsToUpdate.dueDate;
       }
-      
-      fieldsToUpdate.client_id = updatedFields.client_id === "" ? null : updatedFields.client_id; // Asegurar null si está vacío
+
+      fieldsToUpdate.client_id = updatedFields.client_id === "" ? null : updatedFields.client_id;
 
       const { error } = await supabase
         .from("projects")
@@ -204,7 +213,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, setProjects]);
 
-  const addNoteToProject = useCallback(async (projectId: string, content: string) => {
+  const addNoteToProject = useCallback(async (projectId: string, title: string, content: string) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir notas.");
       return;
@@ -213,7 +222,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       const project = projects.find(p => p.id === projectId);
       if (!project) throw new Error("Proyecto no encontrado.");
 
-      const newNote = { id: Date.now().toString(), content, createdAt: new Date().toISOString() };
+      const newNote: Note = { id: Date.now().toString(), title: title || "", content, createdAt: new Date().toISOString() };
       const updatedNotes = [...project.notes, newNote];
 
       await updateProject(projectId, { notes: updatedNotes });
@@ -253,7 +262,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, projects, updateProject]);
 
-  const addTaskToProject = useCallback(async (projectId: string, description: string, start_date?: string, end_date?: string) => {
+  const addTaskToProject = useCallback(async (
+    projectId: string,
+    title: string,
+    description?: string,
+    start_date?: string,
+    end_date?: string,
+    priority: Task['priority'] = 'medium'
+  ) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir tareas.");
       return;
@@ -264,12 +280,14 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       const newTask: Task = {
         id: Date.now().toString(),
-        description,
+        title,
+        description: description || "",
         status: 'not-started',
         createdAt: new Date().toISOString(),
         start_date,
         end_date,
-        is_daily_task: false, // Por defecto, no es una tarea diaria al añadirla
+        is_daily_task: false,
+        priority,
       };
       const updatedTasks = [...project.tasks, newTask];
 
@@ -338,6 +356,32 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, projects, updateProject]);
 
+  const updateTask = useCallback(async (projectId: string, taskId: string, updatedFields: Partial<Task>) => {
+    if (!user) {
+      showError("Debes iniciar sesión para actualizar tareas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedTasks = project.tasks.map((task) =>
+        task.id === taskId ? { ...task, ...updatedFields } : task
+      );
+
+      await updateProject(projectId, { tasks: updatedTasks });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      showSuccess("Tarea actualizada.");
+    } catch (error: any) {
+      showError("Error al actualizar la tarea: " + error.message);
+      console.error("Error updating task:", error);
+    }
+  }, [user, projects, updateProject]);
+
   const deleteTaskFromProject = useCallback(async (projectId: string, taskId: string) => {
     if (!user) {
       showError("Debes iniciar sesión para eliminar tareas.");
@@ -375,6 +419,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         addTaskToProject,
         updateTaskStatus,
         updateTaskDailyStatus,
+        updateTask,
         deleteTaskFromProject,
       }}
     >

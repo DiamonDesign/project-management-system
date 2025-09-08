@@ -28,9 +28,13 @@ const getStatusVariant = (status: string) => {
 };
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
-  const completedTasks = project.tasks.filter(task => task.status === 'completed').length; // Usar el nuevo campo 'status'
+  const completedTasks = project.tasks.filter(task => task.status === 'completed').length;
   const totalTasks = project.tasks.length;
-  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const progressPercentage = totalDaysSafe(totalTasks) ? (completedTasks / totalTasks) * 100 : 0;
+
+  function totalDaysSafe(total: number) {
+    return total > 0;
+  }
 
   return (
     <Link to={`/projects/${project.id}`} className="block">
