@@ -42,7 +42,11 @@ const TaskFormSchema = z.object({
   endDate: z.string().optional().nullable(),
 });
 
-export const AddTaskDialog = () => {
+interface AddTaskDialogProps {
+  children: React.ReactNode; // Añadir children para el disparador
+}
+
+export const AddTaskDialog = ({ children }: AddTaskDialogProps) => {
   const [open, setOpen] = useState(false);
   const { projects, isLoadingProjects, addTaskToProject } = useProjectContext();
   const form = useForm<z.infer<typeof TaskFormSchema>>({
@@ -75,7 +79,7 @@ export const AddTaskDialog = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">Añadir Nueva Tarea</Button>
+        {children} {/* Usar children como disparador */}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

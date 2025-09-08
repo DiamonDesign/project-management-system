@@ -116,7 +116,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoadingSession, fetchProjects]);
 
-  const addProject = async (projectData: z.infer<typeof ProjectFormSchema>) => {
+  const addProject = useCallback(async (projectData: z.infer<typeof ProjectFormSchema>) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir proyectos.");
       return;
@@ -144,9 +144,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al añadir el proyecto: " + error.message);
       console.error("Error adding project:", error);
     }
-  };
+  }, [user, setProjects]);
 
-  const updateProject = async (projectId: string, updatedFields: Partial<Project>) => {
+  const updateProject = useCallback(async (projectId: string, updatedFields: Partial<Project>) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar proyectos.");
       return;
@@ -180,9 +180,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al actualizar el proyecto: " + error.message);
       console.error("Error updating project:", error);
     }
-  };
+  }, [user, setProjects]);
 
-  const deleteProject = async (projectId: string) => {
+  const deleteProject = useCallback(async (projectId: string) => {
     if (!user) {
       showError("Debes iniciar sesión para eliminar proyectos.");
       return;
@@ -202,9 +202,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al eliminar el proyecto: " + error.message);
       console.error("Error deleting project:", error);
     }
-  };
+  }, [user, setProjects]);
 
-  const addNoteToProject = async (projectId: string, content: string) => {
+  const addNoteToProject = useCallback(async (projectId: string, content: string) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir notas.");
       return;
@@ -227,9 +227,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al añadir la nota: " + error.message);
       console.error("Error adding note:", error);
     }
-  };
+  }, [user, projects, updateProject]);
 
-  const deleteNoteFromProject = async (projectId: string, noteId: string) => {
+  const deleteNoteFromProject = useCallback(async (projectId: string, noteId: string) => {
     if (!user) {
       showError("Debes iniciar sesión para eliminar notas.");
       return;
@@ -251,9 +251,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al eliminar la nota: " + error.message);
       console.error("Error deleting note:", error);
     }
-  };
+  }, [user, projects, updateProject]);
 
-  const addTaskToProject = async (projectId: string, description: string, start_date?: string, end_date?: string) => {
+  const addTaskToProject = useCallback(async (projectId: string, description: string, start_date?: string, end_date?: string) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir tareas.");
       return;
@@ -284,9 +284,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al añadir la tarea: " + error.message);
       console.error("Error adding task:", error);
     }
-  };
+  }, [user, projects, updateProject]);
 
-  const updateTaskStatus = async (projectId: string, taskId: string, newStatus: Task['status']) => {
+  const updateTaskStatus = useCallback(async (projectId: string, taskId: string, newStatus: Task['status']) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar tareas.");
       return;
@@ -310,10 +310,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al actualizar la tarea: " + error.message);
       console.error("Error updating task status:", error);
     }
-  };
+  }, [user, projects, updateProject]);
 
-  // NUEVA FUNCIÓN: Actualizar el estado de tarea diaria
-  const updateTaskDailyStatus = async (projectId: string, taskId: string, isDaily: boolean) => {
+  const updateTaskDailyStatus = useCallback(async (projectId: string, taskId: string, isDaily: boolean) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar tareas.");
       return;
@@ -337,7 +336,31 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al actualizar el estado de tarea diaria: " + error.message);
       console.error("Error updating daily task status:", error);
     }
-  };
+  }, [user, projects, updateProject]);
+
+  const deleteTaskFromProject = useCallback(async (projectId: string, taskId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para eliminar tareas.");
+      return;
+    }
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error("Proyecto no encontrado.");
+
+      const updatedTasks = project.tasks.filter((task) => task.id !== taskId);
+
+      await updateProject(projectId, { tasks: updatedTasks });
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, tasks: updatedTasks } : p
+        )
+      );
+      showSuccess("Tarea eliminada.");
+    } catch (error: any) {
+      showError("Error al eliminar la tarea: " + error.message);
+      console.error("Error deleting task:", error);
+    }
+  }, [user, projects, updateProject]);
 
   return (
     <ProjectContext.Provider
@@ -351,7 +374,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         deleteNoteFromProject,
         addTaskToProject,
         updateTaskStatus,
-        updateTaskDailyStatus, // Añadir la nueva función al contexto
+        updateTaskDailyStatus,
         deleteTaskFromProject,
       }}
     >

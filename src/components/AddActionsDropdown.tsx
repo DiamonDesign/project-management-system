@@ -23,20 +23,20 @@ export const AddActionsDropdown = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <AddProjectDialog onAddProject={addProject}>
+        <AddProjectDialog onAddProject={addProject}>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevenir que el dropdown se cierre */}
             <Button variant="ghost" className="w-full justify-start">
               Proyecto
             </Button>
-          </AddProjectDialog>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <AddTaskDialog>
+          </DropdownMenuItem>
+        </AddProjectDialog>
+        <AddTaskDialog>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevenir que el dropdown se cierre */}
             <Button variant="ghost" className="w-full justify-start">
               Tarea
             </Button>
-          </AddTaskDialog>
-        </DropdownMenuItem>
+          </DropdownMenuItem>
+        </AddTaskDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   );

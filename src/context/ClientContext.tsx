@@ -75,15 +75,21 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isLoadingSession, fetchClients]);
 
-  const addClient = async (clientData: z.infer<typeof ClientFormSchema>) => {
+  const addClient = useCallback(async (clientData: z.infer<typeof ClientFormSchema>) => {
     if (!user) {
       showError("Debes iniciar sesión para añadir clientes.");
       return;
     }
     try {
-      const newClient: Omit<Client, "id" | "created_at" | "notes"> = { // Excluir 'notes' también
+      // Explicitly assign properties to ensure 'name' is not optional
+      const newClient: Omit<Client, "id" | "created_at" | "notes"> = {
         user_id: user.id,
-        ...clientData,
+        name: clientData.name,
+        email: clientData.email || undefined,
+        phone: clientData.phone || undefined,
+        company: clientData.company || undefined,
+        address: clientData.address || undefined,
+        cif: clientData.cif || undefined,
       };
       const { data, error } = await supabase
         .from("clients")
@@ -99,9 +105,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al añadir el cliente: " + error.message);
       console.error("Error adding client:", error);
     }
-  };
+  }, [user, setClients, fetchClients]); // Añadir fetchClients a las dependencias
 
-  const updateClient = async (clientId: string, updatedFields: Partial<Client>) => {
+  const updateClient = useCallback(async (clientId: string, updatedFields: Partial<Client>) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar clientes.");
       return;
@@ -125,9 +131,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al actualizar el cliente: " + error.message);
       console.error("Error updating client:", error);
     }
-  };
+  }, [user, setClients]);
 
-  const deleteClient = async (clientId: string) => {
+  const deleteClient = useCallback(async (clientId: string) => {
     if (!user) {
       showError("Debes iniciar sesión para eliminar clientes.");
       return;
@@ -147,7 +153,7 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       showError("Error al eliminar el cliente: " + error.message);
       console.error("Error deleting client:", error);
     }
-  };
+  }, [user, setClients]);
 
   return (
     <ClientContext.Provider

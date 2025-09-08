@@ -5,7 +5,7 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { useSession } from "@/context/SessionContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react"; // Mantener la importación si se usa en otro lugar, pero no para el botón
+import { LogOut, PlusCircle } from "lucide-react"; // Mantener la importación si se usa en otro lugar, pero no para el botón
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Projects = () => {
@@ -29,7 +29,12 @@ const Projects = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Mis Proyectos</h1>
         <div className="flex items-center space-x-4">
-          <AddProjectDialog onAddProject={addProject} />
+          <AddProjectDialog onAddProject={addProject}>
+            <Button className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Añadir Nuevo Proyecto
+            </Button>
+          </AddProjectDialog>
           {/* Botón de Cerrar Sesión eliminado de aquí */}
         </div>
       </div>

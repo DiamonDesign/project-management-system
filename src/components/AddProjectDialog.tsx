@@ -39,9 +39,10 @@ import { useClientContext } from "@/context/ClientContext"; // Importar useClien
 
 interface AddProjectDialogProps {
   onAddProject: (project: z.infer<typeof ProjectFormSchema>) => void;
+  children: React.ReactNode; // Añadir children para el disparador
 }
 
-export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
+export const AddProjectDialog = ({ onAddProject, children }: AddProjectDialogProps) => {
   const [open, setOpen] = useState(false);
   const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
@@ -76,7 +77,7 @@ export const AddProjectDialog = ({ onAddProject }: AddProjectDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Añadir Nuevo Proyecto</Button>
+        {children} {/* Usar children como disparador */}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
