@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input"; // Keep Input for other uses if any, or remove if not needed
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Pencil, Save, X } from "lucide-react";
 import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 
 interface NotesSectionProps {
   projectId: string;
@@ -18,8 +20,25 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState("");
 
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'link'
+  ];
+
   const handleAddNote = () => {
-    if (newNoteContent.trim()) {
+    if (newNoteContent.trim() && newNoteContent !== "<p><br></p>") { // Check for empty content or just a blank paragraph
       addNoteToProject(projectId, newNoteContent.trim());
       setNewNoteContent("");
       showSuccess("Nota añadida.");
@@ -39,7 +58,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
   };
 
   const handleSaveNote = (noteId: string) => {
-    if (editingNoteContent.trim()) {
+    if (editingNoteContent.trim() && editingNoteContent !== "<p><br></p>") { // Check for empty content or just a blank paragraph
       const updatedNotes = project?.notes.map(note =>
         note.id === noteId ? { ...note, content: editingNoteContent.trim() } : note
       );
@@ -69,41 +88,38 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
         <CardTitle>Notas</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex space-x-2 mb-4">
-          <Input
-            placeholder="Añadir nueva nota..."
+        <div className="mb-4">
+          <ReactQuill
+            theme="snow"
             value={newNoteContent}
-            onChange={(e) => setNewNoteContent(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleAddNote();
-              }
-            }}
+            onChange={setNewNoteContent}
+            modules={modules}
+            formats={formats}
+            placeholder="Añadir nueva nota..."
+            className="mb-2 h-32" // Adjust height for the editor
           />
-          <Button onClick={handleAddNote}>Añadir</Button>
+          <Button onClick={handleAddNote} className="w-full mt-10">Añadir Nota</Button>
         </div>
         {project.notes.length === 0 ? (
           <p className="text-muted-foreground text-sm">No hay notas para este proyecto.</p>
         ) : (
-          <ScrollArea className="h-48 w-full rounded-md border p-4">
-            <ul className="space-y-2">
+          <ScrollArea className="h-64 w-full rounded-md border p-4">
+            <ul className="space-y-4">
               {project.notes.map((note) => (
-                <li key={note.id} className="flex items-center justify-between text-sm">
+                <li key={note.id} className="flex flex-col p-2 border rounded-md bg-secondary/20">
                   {editingNoteId === note.id ? (
-                    <Input
+                    <ReactQuill
+                      theme="snow"
                       value={editingNoteContent}
-                      onChange={(e) => setEditingNoteContent(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveNote(note.id);
-                        }
-                      }}
-                      className="flex-1 mr-2"
+                      onChange={setEditingNoteContent}
+                      modules={modules}
+                      formats={formats}
+                      className="mb-2 h-32"
                     />
                   ) : (
-                    <span className="flex-1 pr-2">{note.content}</span>
+                    <div className="flex-1 pr-2 text-sm quill-content" dangerouslySetInnerHTML={{ __html: note.content }} />
                   )}
-                  <div className="flex space-x-1">
+                  <div className="flex justify-end space-x-1 mt-2">
                     {editingNoteId === note.id ? (
                       <>
                         <Button
