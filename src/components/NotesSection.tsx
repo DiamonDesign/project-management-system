@@ -5,9 +5,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Pencil, Save, X } from "lucide-react";
 import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
-import LazyRichTextEditor from './LazyRichTextEditor';
+import { SecureTipTapEditor } from './SecureTipTapEditor';
 import { Input } from "@/components/ui/input";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
+import { ComponentErrorBoundary } from "./ErrorBoundary";
 
 interface NotesSectionProps {
   projectId: string;
@@ -79,9 +80,23 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
   };
 
   const handleEditNote = (noteId: string, currentTitle: string, currentContent: string) => {
-    setEditingNoteId(noteId);
-    setEditingNoteTitle(currentTitle || "");
-    setEditingNoteContent(currentContent || "");
+    try {
+      console.log('Starting note edit:', { noteId, currentTitle: currentTitle?.length, currentContent: currentContent?.length });
+      
+      setEditingNoteId(noteId);
+      setEditingNoteTitle(currentTitle || "");
+      setEditingNoteContent(currentContent || "");
+      
+      console.log('Note edit state set successfully');
+    } catch (error) {
+      console.error('Error starting note edit:', error);
+      showError("Error al iniciar la edición. Por favor, inténtalo de nuevo.");
+      
+      // Reset states on error
+      setEditingNoteId(null);
+      setEditingNoteTitle("");
+      setEditingNoteContent("");
+    }
   };
 
   const handleSaveNote = (noteId: string) => {
@@ -143,15 +158,14 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
       <CardContent>
         <div className="mb-4">
           <Input placeholder="Título de la nota (opcional)" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} className="mb-2" />
-          <LazyRichTextEditor
-            theme="snow"
-            value={newNoteContent}
-            onChange={setNewNoteContent}
-            modules={modules}
-            formats={formats}
-            placeholder="Añadir nueva nota..."
-            className="mb-2 h-32"
-          />
+          <ComponentErrorBoundary>
+            <SecureTipTapEditor
+              value={newNoteContent}
+              onChange={setNewNoteContent}
+              placeholder="Añadir nueva nota..."
+              className="mb-2 h-32"
+            />
+          </ComponentErrorBoundary>
           <Button onClick={handleAddNote} className="w-full mt-2">Añadir Nota</Button>
         </div>
         {project.notes.length === 0 ? (
@@ -164,14 +178,14 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                   {editingNoteId === note.id ? (
                     <>
                       <Input placeholder="Título de la nota (opcional)" value={editingNoteTitle} onChange={(e) => setEditingNoteTitle(e.target.value)} className="mb-2" />
-                      <LazyRichTextEditor
-                        theme="snow"
-                        value={editingNoteContent}
-                        onChange={setEditingNoteContent}
-                        modules={modules}
-                        formats={formats}
-                        className="mb-2 h-32"
-                      />
+                      <ComponentErrorBoundary>
+                        <SecureTipTapEditor
+                          value={editingNoteContent}
+                          onChange={setEditingNoteContent}
+                          placeholder="Contenido de la nota..."
+                          className="mb-2 h-32"
+                        />
+                      </ComponentErrorBoundary>
                     </>
                   ) : (
                     <>
@@ -203,14 +217,24 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                         </Button>
                       </>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditNote(note.id, note.title || "", note.content)}
-                        className="text-blue-600 hover:bg-blue-600/10"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <ComponentErrorBoundary>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            try {
+                              console.log('Edit button clicked for note:', note.id);
+                              handleEditNote(note.id, note.title || "", note.content);
+                            } catch (error) {
+                              console.error('Error in edit button click handler:', error);
+                              showError("Error al iniciar la edición de la nota.");
+                            }
+                          }}
+                          className="text-blue-600 hover:bg-blue-600/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </ComponentErrorBoundary>
                     )}
                     <Button
                       variant="ghost"

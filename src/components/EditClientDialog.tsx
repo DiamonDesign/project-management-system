@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useClientContext, Client, ClientFormSchema } from "@/context/ClientContext";
+import { useClientContext, Client } from "@/context/ClientContext";
+import { ClientFormSchema } from "@/lib/schemas";
 import { showSuccess, showError } from "@/utils/toast";
 import { Pencil } from "lucide-react";
 

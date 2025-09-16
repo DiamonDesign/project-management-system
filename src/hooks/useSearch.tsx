@@ -1,27 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useProjectContext } from '@/context/ProjectContext';
 import { useClientContext } from '@/context/ClientContext';
-
-export interface SearchResult {
-  id: string;
-  type: 'project' | 'task' | 'client' | 'note';
-  title: string;
-  subtitle?: string;
-  description?: string;
-  url: string;
-  projectId?: string;
-  clientId?: string;
-}
-
-export interface SearchFilters {
-  types: ('project' | 'task' | 'client' | 'note')[];
-  status?: string[];
-  priority?: string[];
-}
-
-const defaultFilters: SearchFilters = {
-  types: ['project', 'task', 'client', 'note'],
-};
+import { SearchResult, SearchFilters, defaultFilters } from '@/types/search';
 
 export const useSearch = () => {
   const [query, setQuery] = useState('');

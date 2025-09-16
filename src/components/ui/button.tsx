@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { useHapticFeedback, HapticPattern } from "@/hooks/useHapticFeedback";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:flex-shrink-0 relative overflow-hidden group",
@@ -55,6 +56,7 @@ export interface ButtonProps
   loadingText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  hapticFeedback?: boolean | HapticPattern;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -69,16 +71,46 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     rightIcon,
     children,
     disabled,
+    hapticFeedback = true,
+    onClick,
     ...props 
   }, ref) => {
     const Comp = asChild ? Slot : "button";
     const isDisabled = disabled || loading;
+    const { haptic } = useHapticFeedback();
+
+    // Determine haptic pattern based on variant and feedback prop
+    const getHapticPattern = (): HapticPattern => {
+      if (typeof hapticFeedback === 'string') {
+        return hapticFeedback;
+      }
+      
+      switch (variant) {
+        case 'destructive':
+          return 'warning';
+        case 'success':
+          return 'success';
+        case 'warning':
+          return 'warning';
+        default:
+          return 'light';
+      }
+    };
+
+    // Enhanced onClick handler with haptic feedback
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!isDisabled && hapticFeedback) {
+        haptic(getHapticPattern());
+      }
+      onClick?.(e);
+    };
     
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, loading, className }))}
         ref={ref}
         disabled={isDisabled}
+        onClick={handleClick}
         {...props}
       >
         {loading && (

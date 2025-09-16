@@ -8,7 +8,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Loader2 } from "lucide-react";
 import { showError } from "@/utils/toast";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 
 const ClientPortalInvite = () => {
   const [searchParams] = useSearchParams();

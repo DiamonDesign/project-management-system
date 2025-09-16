@@ -1,11 +1,9 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { showSuccess, showError } from "@/utils/toast";
-import { validationSchemas, isValidUuid } from "@/lib/security";
-import { useLoadingTimeout } from "@/hooks/useLoadingTimeout";
-import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import { ProjectFormSchema, type ProjectFormData } from "@/lib/schemas";
 import type { Page, PageFormData, PageType } from "@/types";
 
 // Legacy Note interface for backward compatibility
@@ -26,6 +24,9 @@ export interface Task {
   end_date?: string;   // Fecha límite / due date
   is_daily_task?: boolean;
   priority?: 'low' | 'medium' | 'high';
+  // Optimized project data (denormalized for performance)
+  projectId?: string;
+  projectName?: string;
 }
 
 // Project interface with both legacy notes and new pages
@@ -35,43 +36,32 @@ export interface Project {
   name: string;
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
+  project_type?: 'web' | 'seo' | 'marketing' | 'branding' | 'ecommerce' | 'mobile' | 'task' | 'maintenance' | 'other';
   dueDate?: string;
   client_id?: string | null;
+  archived?: boolean;
+  archived_at?: string | null;
+  // Optimized client data (denormalized for performance)
+  clientName?: string | null;
+  clientEmail?: string | null;
+  clientCompany?: string | null;
   notes: Note[]; // Legacy support
   pages?: Page[]; // New pages system
   tasks: Task[];
   created_at: string;
 }
 
-export const ProjectFormSchema = z.object({
-  name: validationSchemas.projectTitle,
-  description: validationSchemas.description,
-  status: z.enum(["pending", "in-progress", "completed"], {
-    required_error: "Por favor, selecciona un estado para el proyecto.",
-  }),
-  dueDate: z.string()
-    .optional()
-    .nullable()
-    .refine((date) => {
-      if (!date) return true;
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime()) && parsedDate >= new Date();
-    }, "La fecha límite debe ser válida y en el futuro"),
-  client_id: z.string()
-    .optional()
-    .nullable()
-    .refine((id) => {
-      if (!id || id === '') return true;
-      return isValidUuid(id);
-    }, "ID de cliente inválido"),
-});
+// ProjectFormSchema moved to @/lib/schemas to fix Fast Refresh warnings
 
 interface ProjectContextType {
   projects: Project[];
+  archivedProjects: Project[];
   isLoadingProjects: boolean;
-  addProject: (projectData: z.infer<typeof ProjectFormSchema>) => Promise<void>;
-  updateProject: (projectId: string, updatedFields: Partial<Project>) => Promise<void>;
+  addProject: (projectData: ProjectFormData) => Promise<void>;
+  updateProject: (projectId: string, updatedFields: Partial<Project> | ProjectFormData) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
+  archiveProject: (projectId: string) => Promise<void>;
+  unarchiveProject: (projectId: string) => Promise<void>;
   // Legacy note methods (backward compatibility)
   addNoteToProject: (projectId: string, title: string, content: string) => Promise<void>;
   deleteNoteFromProject: (projectId: string, noteId: string) => Promise<void>;
@@ -92,99 +82,116 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoading: isLoadingSession } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [archivedProjects, setArchivedProjects] = useState<Project[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
-  // Safety timeout to prevent infinite loading (15 seconds)
-  useLoadingTimeout(isLoadingProjects, setIsLoadingProjects, 15000);
-  
-  // Retry mechanism for failed requests
-  const { executeWithRetry } = useRetryableRequest();
 
   const fetchProjects = useCallback(async () => {
     if (!user) {
       setProjects([]);
+      setArchivedProjects([]);
       setIsLoadingProjects(false);
       return;
     }
+
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
     setIsLoadingProjects(true);
     
-    const result = await executeWithRetry(
-      () => supabase
+    try {
+      // Optimized query: Join with clients table to avoid N+1 lookups
+      const { data, error } = await supabase
         .from("projects")
-        .select("*")
+        .select(`
+          *,
+          client:clients(id, name, email, company)
+        `)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false }),
-      {
-        maxRetries: 2,
-        retryDelayMs: 1000,
-        timeoutMs: 8000
-      },
-      'proyectos'
-    );
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
-    if (!result) {
-      // Request failed after all retries, set empty state
-      setProjects([]);
-      setIsLoadingProjects(false);
-      return;
-    }
+      if (error) {
+        throw error;
+      }
 
-    const { data, error } = result;
+      // Normalize projects with both legacy notes and new pages + optimized client data
+      const projectsWithNormalizedData = data.map((project: Record<string, unknown>) => {
+        // Safely access client data
+        const clientData = project.client as Record<string, unknown> | null;
 
-    if (error) {
+        return {
+          ...project,
+          dueDate: project.due_date || null,
+          archived: Boolean(project.archived || false),
+          archived_at: project.archived_at || null,
+          // Add client data directly to avoid N+1 lookups
+          clientName: clientData?.name || null,
+          clientEmail: clientData?.email || null,
+          clientCompany: clientData?.company || null,
+          // Legacy notes normalization
+          notes: (Array.isArray(project.notes) ? project.notes : []).map((note: Record<string, unknown>) => ({
+            id: String(note.id ?? `${Date.now()}-${Math.random()}`),
+            title: String(note.title ?? ""),
+            content: String(note.content ?? ""),
+            createdAt: String(note.createdAt ?? note.created_at ?? new Date().toISOString()),
+          })),
+          // New pages normalization
+          pages: (Array.isArray(project.pages) ? project.pages : []).map((page: Record<string, unknown>) => ({
+            id: String(page.id ?? `${Date.now()}-${Math.random()}`),
+            title: String(page.title ?? ""),
+            content: String(page.content ?? ""),
+            project_id: String(project.id),
+            page_type: String(page.page_type ?? 'general') as PageType,
+            icon: page.icon ? String(page.icon) : undefined,
+            is_favorited: Boolean(page.is_favorited ?? false),
+            tags: Array.isArray(page.tags) ? page.tags.map(String) : [],
+            template_id: page.template_id ? String(page.template_id) : undefined,
+            created_at: String(page.created_at ?? new Date().toISOString()),
+            updated_at: page.updated_at ? String(page.updated_at) : undefined,
+          })),
+          // Tasks normalization with project reference for O(1) lookups
+          tasks: (Array.isArray(project.tasks) ? project.tasks : []).map((task: Record<string, unknown>) => ({
+            id: String(task.id ?? `${Date.now()}-${Math.random()}`),
+            title: String(task.title ?? task.description ?? ""),
+            description: String(task.description_long ?? task.details ?? task.description ?? ""),
+            createdAt: String(task.createdAt ?? task.created_at ?? new Date().toISOString()),
+            status: (task.status as Task['status']) || (task.completed ? 'completed' : 'not-started'),
+            start_date: task.start_date ? String(task.start_date) : undefined,
+            end_date: task.end_date ? String(task.end_date) : undefined,
+            is_daily_task: Boolean(task.is_daily_task || false),
+            priority: (task.priority as Task['priority']) || 'medium',
+            projectId: String(project.id), // Add project reference for efficient lookups
+            projectName: String(project.name), // Cache project name to avoid lookups
+          })),
+        };
+      });
+
+      // Separate archived and active projects
+      const normalizedProjects = projectsWithNormalizedData as Project[];
+      const activeProjects = normalizedProjects.filter(p => !p.archived);
+      const archived = normalizedProjects.filter(p => p.archived);
+
+      setProjects(activeProjects);
+      setArchivedProjects(archived);
+    } catch (error: unknown) {
+      // Check if request was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Request was cancelled, don't show error to user
+        return;
+      }
+      
       console.error("Error fetching projects:", error);
       showError("Error al cargar los proyectos.");
       setProjects([]);
-      setIsLoadingProjects(false);
-      return;
-    }
-
-    try {
-      // Normalize projects with both legacy notes and new pages
-      const projectsWithNormalizedData = data.map((project: Record<string, unknown>) => ({
-        ...project,
-        dueDate: project.due_date,
-        // Legacy notes normalization
-        notes: (Array.isArray(project.notes) ? project.notes : []).map((note: Record<string, unknown>) => ({
-          id: note.id ?? `${Date.now()}-${Math.random()}`,
-          title: note.title ?? "",
-          content: note.content ?? "",
-          createdAt: note.createdAt ?? note.created_at ?? new Date().toISOString(),
-        })),
-        // New pages normalization
-        pages: (Array.isArray(project.pages) ? project.pages : []).map((page: Record<string, unknown>) => ({
-          id: page.id ?? `${Date.now()}-${Math.random()}`,
-          title: page.title ?? "",
-          content: page.content ?? "",
-          project_id: project.id,
-          page_type: page.page_type ?? 'general',
-          icon: page.icon,
-          is_favorited: page.is_favorited ?? false,
-          tags: Array.isArray(page.tags) ? page.tags : [],
-          template_id: page.template_id,
-          created_at: page.created_at ?? new Date().toISOString(),
-          updated_at: page.updated_at,
-        })),
-        // Tasks normalization
-        tasks: (Array.isArray(project.tasks) ? project.tasks : []).map((task: Record<string, unknown>) => ({
-          id: task.id ?? `${Date.now()}-${Math.random()}`,
-          title: task.title ?? task.description ?? "",
-          description: task.description_long ?? task.details ?? task.description ?? "",
-          createdAt: task.createdAt ?? task.created_at ?? new Date().toISOString(),
-          status: task.status || (task.completed ? 'completed' : 'not-started'),
-          start_date: task.start_date,
-          end_date: task.end_date,
-          is_daily_task: task.is_daily_task || false,
-          priority: task.priority || 'medium',
-        }))
-      }));
-      
-      setProjects(projectsWithNormalizedData as Project[]);
-    } catch (error) {
-      console.error("Error processing projects data:", error);
-      showError("Error al procesar los datos de proyectos.");
-      setProjects([]);
+      setArchivedProjects([]);
     } finally {
       setIsLoadingProjects(false);
     }
@@ -197,36 +204,54 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoadingSession, fetchProjects]);
 
   const addProject = useCallback(async (projectData: z.infer<typeof ProjectFormSchema>) => {
-    if (!user) {
+    if (!user?.id) {
       showError("Debes iniciar sesión para añadir proyectos.");
       return;
     }
+    
     try {
-      const { dueDate, ...rest } = projectData;
-      const newProject = {
-        user_id: user.id,
+      const { dueDate, project_type, client_id, ...rest } = projectData;
+      const supabaseProject = {
+        user_id: user.id, // Use context user ID directly
         ...rest,
-        due_date: dueDate === undefined ? null : dueDate,
-        client_id: projectData.client_id === "" ? null : projectData.client_id,
+        project_type: project_type || null,
+        due_date: dueDate === undefined || dueDate === null ? null : dueDate,
+        client_id: client_id === "" || client_id === null ? null : client_id,
       };
+
       const { data, error } = await supabase
         .from("projects")
-        .insert(newProject)
+        .insert(supabaseProject)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setProjects((prev) => [{ ...data, dueDate: data.due_date, notes: [], pages: [], tasks: [] } as Project, ...prev]);
+      setProjects((prev) => [{
+        ...data,
+        dueDate: data.due_date,
+        project_type: data.project_type || undefined,
+        archived: false,
+        archived_at: null,
+        notes: [],
+        pages: [],
+        tasks: [],
+        clientName: null,
+        clientEmail: null,
+        clientCompany: null,
+      } as Project, ...prev]);
       showSuccess("Proyecto añadido exitosamente.");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       showError("Error al añadir el proyecto: " + errorMessage);
       console.error("Error adding project:", error);
+      throw error;
     }
   }, [user, setProjects]);
 
-  const updateProject = useCallback(async (projectId: string, updatedFields: Partial<Project>) => {
+  const updateProject = useCallback(async (projectId: string, updatedFields: Partial<Project> | z.infer<typeof ProjectFormSchema>) => {
     if (!user) {
       showError("Debes iniciar sesión para actualizar proyectos.");
       return;
@@ -234,12 +259,22 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     try {
       const fieldsToUpdate: Record<string, unknown> = { ...updatedFields };
 
+      // Transform field names for database
       if ('dueDate' in updatedFields) {
-        fieldsToUpdate.due_date = updatedFields.dueDate === undefined ? null : updatedFields.dueDate;
+        fieldsToUpdate.due_date = updatedFields.dueDate === undefined || updatedFields.dueDate === null ? null : updatedFields.dueDate;
         delete fieldsToUpdate.dueDate;
       }
 
-      fieldsToUpdate.client_id = updatedFields.client_id === "" ? null : updatedFields.client_id;
+      // Handle project_type properly
+      if ('project_type' in updatedFields) {
+        fieldsToUpdate.project_type = updatedFields.project_type === undefined ? null : updatedFields.project_type;
+      }
+
+      // Handle client_id properly (for both form schema and partial project)
+      if ('client_id' in updatedFields) {
+        const clientId = updatedFields.client_id;
+        fieldsToUpdate.client_id = clientId === "" || clientId === null || clientId === undefined ? null : clientId;
+      }
 
       const { error } = await supabase
         .from("projects")
@@ -584,14 +619,99 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, projects, updateProject]);
 
+  // Archive/Unarchive functions
+  const archiveProject = useCallback(async (projectId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para archivar proyectos.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          archived: true,
+          archived_at: new Date().toISOString()
+        })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      // Move project from active to archived
+      const projectToArchive = projects.find(p => p.id === projectId);
+      if (projectToArchive) {
+        const archivedProject = {
+          ...projectToArchive,
+          archived: true,
+          archived_at: new Date().toISOString()
+        };
+        setProjects(prev => prev.filter(p => p.id !== projectId));
+        setArchivedProjects(prev => [archivedProject, ...prev]);
+      }
+      showSuccess("Proyecto archivado exitosamente.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al archivar el proyecto: " + errorMessage);
+      console.error("Error archiving project:", error);
+    }
+  }, [user, projects, setProjects, setArchivedProjects]);
+
+  const unarchiveProject = useCallback(async (projectId: string) => {
+    if (!user) {
+      showError("Debes iniciar sesión para desarchivar proyectos.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          archived: false,
+          archived_at: null
+        })
+        .eq("id", projectId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      // Move project from archived to active
+      const projectToUnarchive = archivedProjects.find(p => p.id === projectId);
+      if (projectToUnarchive) {
+        const unarchivedProject = {
+          ...projectToUnarchive,
+          archived: false,
+          archived_at: null
+        };
+        setArchivedProjects(prev => prev.filter(p => p.id !== projectId));
+        setProjects(prev => [unarchivedProject, ...prev]);
+      }
+      showSuccess("Proyecto desarchivado exitosamente.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      showError("Error al desarchivar el proyecto: " + errorMessage);
+      console.error("Error unarchiving project:", error);
+    }
+  }, [user, archivedProjects, setProjects, setArchivedProjects]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   return (
     <ProjectContext.Provider
       value={{
         projects,
+        archivedProjects,
         isLoadingProjects,
         addProject,
         updateProject,
         deleteProject,
+        archiveProject,
+        unarchiveProject,
         // Legacy note methods
         addNoteToProject,
         deleteNoteFromProject,

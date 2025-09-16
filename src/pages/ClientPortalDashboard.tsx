@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { supabase } from "@/integrations/supabase/client";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Project, Task } from "@/context/ProjectContext"; // Reutilizar interfaces de ProjectContext
 import { showSuccess, showError } from "@/utils/toast";
+import type { AppError } from "@/types";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -28,7 +29,7 @@ const getStatusVariant = (status: string) => {
 };
 
 const ClientPortalDashboard = () => {
-  const { session, user, isLoading: isLoadingSession, signOut } = useSession();
+  const { session, user, isLoading: isLoadingSession, isSigningOut, signOut } = useSession();
   const [clientProjects, setClientProjects] = useState<Project[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [clientName, setClientName] = useState("Cliente");
@@ -84,7 +85,7 @@ const ClientPortalDashboard = () => {
       const projectsWithNormalizedData = projectsData.map(project => ({
         ...project,
         dueDate: project.due_date,
-        tasks: project.tasks.map((task: any) => ({
+        tasks: project.tasks.map((task: Task) => ({
           id: task.id,
           description: task.description,
           createdAt: task.createdAt,
@@ -95,8 +96,9 @@ const ClientPortalDashboard = () => {
         }))
       }));
       setClientProjects(projectsWithNormalizedData as Project[]);
-    } catch (error: any) {
-      showError("Error al cargar tus proyectos: " + error.message);
+    } catch (error: unknown) {
+      const appError = error as AppError;
+      showError("Error al cargar tus proyectos: " + appError.message);
       console.error("Error fetching client projects:", error);
       setClientProjects([]);
     } finally {
@@ -131,8 +133,8 @@ const ClientPortalDashboard = () => {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Bienvenido, {clientName}</h1>
-        <Button variant="outline" onClick={signOut}>
-          <LogOut className="h-4 w-4 mr-2" /> Cerrar Sesión
+        <Button variant="outline" onClick={signOut} disabled={isSigningOut}>
+          <LogOut className="h-4 w-4 mr-2" /> {isSigningOut ? "Cerrando..." : "Cerrar Sesión"}
         </Button>
       </div>
 

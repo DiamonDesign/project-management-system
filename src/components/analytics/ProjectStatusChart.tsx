@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Project } from '@/context/ProjectContext';
+import type { RechartsTooltipProps, RechartsPieLabelProps } from '@/types';
 
 interface ProjectStatusChartProps {
   projects: Project[];
@@ -34,7 +35,7 @@ export const ProjectStatusChart: React.FC<ProjectStatusChartProps> = ({ projects
     }));
   }, [projects]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: RechartsTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -49,7 +50,7 @@ export const ProjectStatusChart: React.FC<ProjectStatusChartProps> = ({ projects
     return null;
   };
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: RechartsPieLabelProps) => {
     if (percent < 0.05) return null; // Don't show labels for slices smaller than 5%
     
     const RADIAN = Math.PI / 180;

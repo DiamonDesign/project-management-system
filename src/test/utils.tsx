@@ -188,16 +188,8 @@ export const checkAccessibility = async (container: HTMLElement) => {
   });
 };
 
-// Custom matchers
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeInTheDocument(): R;
-      toHaveAccessibleName(name: string): R;
-      toHaveErrorMessage(message: string): R;
-    }
-  }
-}
+// Custom matchers for testing-library/jest-dom are automatically available
+// No need for explicit declarations with vitest + @testing-library/jest-dom
 
 // Error boundary testing
 export const ThrowError: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow = true }) => {

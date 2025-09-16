@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Search, Bell, Settings } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -20,7 +20,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 
 export const Layout = () => {
   const isMobile = useIsMobile();
-  const { session, signOut } = useSession();
+  const { session, isSigningOut, signOut } = useSession();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -138,9 +138,10 @@ export const Layout = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => signOut()}
+                      disabled={isSigningOut}
                       className="text-destructive focus:text-destructive"
                     >
-                      Cerrar sesión
+                      {isSigningOut ? "Cerrando sesión..." : "Cerrar sesión"}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

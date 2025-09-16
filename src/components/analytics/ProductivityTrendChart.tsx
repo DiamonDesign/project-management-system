@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Project } from '@/context/ProjectContext';
+import type { RechartsTooltipProps } from '@/types';
 import { format, subDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -55,7 +56,7 @@ export const ProductivityTrendChart: React.FC<ProductivityTrendChartProps> = ({ 
     });
   }, [projects]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: RechartsTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0]?.payload;
       return (

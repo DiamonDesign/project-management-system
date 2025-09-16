@@ -42,7 +42,7 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
 
   const [fontSize, setFontSizeState] = useState<'small' | 'normal' | 'large' | 'extra-large'>(() => {
     const saved = localStorage.getItem('accessibility-font-size');
-    return (saved as any) || 'normal';
+    return (saved as 'small' | 'normal' | 'large' | 'extra-large') || 'normal';
   });
 
   const [focusVisible, setFocusVisible] = useState(() => {

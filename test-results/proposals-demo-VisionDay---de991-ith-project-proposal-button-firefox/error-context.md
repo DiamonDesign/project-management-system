@@ -1,0 +1,210 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - generic [ref=e3]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - img [ref=e10]
+          - generic [ref=e13]:
+            - heading "Portal de Cliente" [level=1] [ref=e14]
+            - paragraph [ref=e15]: TechCorp SA
+            - paragraph [ref=e16]: Juan Pérez • juan.perez@techcorp.com
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: "4"
+            - generic [ref=e20]: Total Proyectos
+          - generic [ref=e21]:
+            - generic [ref=e22]: "2"
+            - generic [ref=e23]: En Progreso
+          - generic [ref=e24]:
+            - generic [ref=e25]: "1"
+            - generic [ref=e26]: Completados
+          - generic [ref=e27]:
+            - generic [ref=e28]: "1"
+            - generic [ref=e29]: Pendientes
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e34]: M
+          - generic [ref=e35]:
+            - heading "María González" [level=3] [ref=e36]
+            - paragraph [ref=e37]: Tu Diseñadora UI/UX
+            - paragraph [ref=e38]: maria@visionday.design
+        - generic [ref=e39]:
+          - generic [ref=e40]: UI/UX Design
+          - generic [ref=e41]: Mobile Apps
+          - generic [ref=e42]: Design Systems
+        - generic [ref=e43]:
+          - button "Contactar" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45] [cursor=pointer]:
+              - img
+              - text: Contactar
+          - button [ref=e47] [cursor=pointer]:
+            - generic [ref=e48] [cursor=pointer]:
+              - img
+    - generic [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - img [ref=e54]
+            - textbox "Buscar proyectos..." [ref=e57]
+          - generic [ref=e58]:
+            - button "Todos" [ref=e59] [cursor=pointer]:
+              - generic [ref=e60] [cursor=pointer]: Todos
+            - button "Activos" [ref=e62] [cursor=pointer]:
+              - generic [ref=e63] [cursor=pointer]: Activos
+            - button "Completados" [ref=e65] [cursor=pointer]:
+              - generic [ref=e66] [cursor=pointer]: Completados
+        - generic [ref=e68]:
+          - button "Proponer Proyecto" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70] [cursor=pointer]:
+              - img
+              - text: Proponer Proyecto
+          - button [ref=e72] [cursor=pointer]:
+            - generic [ref=e73] [cursor=pointer]:
+              - img
+          - button [ref=e75] [cursor=pointer]:
+            - generic [ref=e76] [cursor=pointer]:
+              - img
+      - generic [ref=e78]:
+        - generic [ref=e79] [cursor=pointer]:
+          - generic [ref=e82] [cursor=pointer]:
+            - generic [ref=e83] [cursor=pointer]:
+              - generic [ref=e85] [cursor=pointer]: Mobile App
+              - generic [ref=e86] [cursor=pointer]: high
+            - heading "Rediseño de Aplicación Móvil" [level=3] [ref=e87] [cursor=pointer]
+            - paragraph [ref=e88] [cursor=pointer]: Rediseño completo de la aplicación móvil con enfoque en UX mejorada
+          - generic [ref=e89] [cursor=pointer]:
+            - generic [ref=e90] [cursor=pointer]:
+              - generic [ref=e91] [cursor=pointer]:
+                - generic [ref=e92] [cursor=pointer]: Progreso
+                - generic [ref=e93] [cursor=pointer]: 65%
+              - progressbar [ref=e94] [cursor=pointer]
+            - generic [ref=e96] [cursor=pointer]:
+              - generic [ref=e97] [cursor=pointer]:
+                - generic [ref=e98] [cursor=pointer]: Entregables
+                - generic [ref=e99] [cursor=pointer]: 2/4
+              - generic [ref=e100] [cursor=pointer]:
+                - generic [ref=e101] [cursor=pointer]: Presupuesto
+                - generic [ref=e102] [cursor=pointer]: €12,000
+              - generic [ref=e103] [cursor=pointer]:
+                - generic [ref=e104] [cursor=pointer]: Entrega
+                - generic [ref=e105] [cursor=pointer]: 30 mar 2024
+            - paragraph [ref=e107] [cursor=pointer]: "Última actividad: 2 horas ago"
+            - generic [ref=e108] [cursor=pointer]:
+              - link "Ver Proyecto" [ref=e109] [cursor=pointer]:
+                - /url: /client-portal/dashboard/proj-1
+                - button "Ver Proyecto" [ref=e110] [cursor=pointer]:
+                  - generic [ref=e111] [cursor=pointer]:
+                    - img
+                    - text: Ver Proyecto
+              - button [ref=e113] [cursor=pointer]:
+                - generic [ref=e114] [cursor=pointer]:
+                  - img
+        - generic [ref=e116] [cursor=pointer]:
+          - generic [ref=e119] [cursor=pointer]:
+            - generic [ref=e120] [cursor=pointer]:
+              - generic [ref=e122] [cursor=pointer]: Design System
+              - generic [ref=e123] [cursor=pointer]: medium
+            - heading "Sistema de Design System" [level=3] [ref=e124] [cursor=pointer]
+            - paragraph [ref=e125] [cursor=pointer]: Creación de design system corporativo para toda la plataforma
+          - generic [ref=e126] [cursor=pointer]:
+            - generic [ref=e127] [cursor=pointer]:
+              - generic [ref=e128] [cursor=pointer]:
+                - generic [ref=e129] [cursor=pointer]: Progreso
+                - generic [ref=e130] [cursor=pointer]: 100%
+              - progressbar [ref=e131] [cursor=pointer]
+            - generic [ref=e133] [cursor=pointer]:
+              - generic [ref=e134] [cursor=pointer]:
+                - generic [ref=e135] [cursor=pointer]: Entregables
+                - generic [ref=e136] [cursor=pointer]: 6/6
+              - generic [ref=e137] [cursor=pointer]:
+                - generic [ref=e138] [cursor=pointer]: Presupuesto
+                - generic [ref=e139] [cursor=pointer]: €8,500
+              - generic [ref=e140] [cursor=pointer]:
+                - generic [ref=e141] [cursor=pointer]: Entrega
+                - generic [ref=e142] [cursor=pointer]: 15 ene 2024
+            - paragraph [ref=e144] [cursor=pointer]: "Última actividad: 3 semanas ago"
+            - generic [ref=e145] [cursor=pointer]:
+              - link "Ver Proyecto" [ref=e146] [cursor=pointer]:
+                - /url: /client-portal/dashboard/proj-2
+                - button "Ver Proyecto" [ref=e147] [cursor=pointer]:
+                  - generic [ref=e148] [cursor=pointer]:
+                    - img
+                    - text: Ver Proyecto
+              - button [ref=e150] [cursor=pointer]:
+                - generic [ref=e151] [cursor=pointer]:
+                  - img
+        - generic [ref=e153] [cursor=pointer]:
+          - generic [ref=e156] [cursor=pointer]:
+            - generic [ref=e157] [cursor=pointer]:
+              - generic [ref=e159] [cursor=pointer]: Web Design
+              - generic [ref=e160] [cursor=pointer]: low
+            - heading "Landing Page Corporativa" [level=3] [ref=e161] [cursor=pointer]
+            - paragraph [ref=e162] [cursor=pointer]: Nueva landing page para productos B2B con focus en conversión
+          - generic [ref=e163] [cursor=pointer]:
+            - generic [ref=e164] [cursor=pointer]:
+              - generic [ref=e165] [cursor=pointer]:
+                - generic [ref=e166] [cursor=pointer]: Progreso
+                - generic [ref=e167] [cursor=pointer]: 0%
+              - progressbar [ref=e168] [cursor=pointer]
+            - generic [ref=e170] [cursor=pointer]:
+              - generic [ref=e171] [cursor=pointer]:
+                - generic [ref=e172] [cursor=pointer]: Entregables
+                - generic [ref=e173] [cursor=pointer]: 0/3
+              - generic [ref=e174] [cursor=pointer]:
+                - generic [ref=e175] [cursor=pointer]: Presupuesto
+                - generic [ref=e176] [cursor=pointer]: €5,200
+              - generic [ref=e177] [cursor=pointer]:
+                - generic [ref=e178] [cursor=pointer]: Entrega
+                - generic [ref=e179] [cursor=pointer]: 15 may 2024
+            - paragraph [ref=e181] [cursor=pointer]: "Última actividad: Sin actividad"
+            - generic [ref=e182] [cursor=pointer]:
+              - link "Ver Proyecto" [ref=e183] [cursor=pointer]:
+                - /url: /client-portal/dashboard/proj-3
+                - button "Ver Proyecto" [ref=e184] [cursor=pointer]:
+                  - generic [ref=e185] [cursor=pointer]:
+                    - img
+                    - text: Ver Proyecto
+              - button [ref=e187] [cursor=pointer]:
+                - generic [ref=e188] [cursor=pointer]:
+                  - img
+        - generic [ref=e190] [cursor=pointer]:
+          - generic [ref=e193] [cursor=pointer]:
+            - generic [ref=e194] [cursor=pointer]:
+              - generic [ref=e196] [cursor=pointer]: Dashboard
+              - generic [ref=e197] [cursor=pointer]: high
+            - heading "Dashboard Analytics V2" [level=3] [ref=e198] [cursor=pointer]
+            - paragraph [ref=e199] [cursor=pointer]: Rediseño del dashboard de analytics con nuevas métricas
+          - generic [ref=e200] [cursor=pointer]:
+            - generic [ref=e201] [cursor=pointer]:
+              - generic [ref=e202] [cursor=pointer]:
+                - generic [ref=e203] [cursor=pointer]: Progreso
+                - generic [ref=e204] [cursor=pointer]: 30%
+              - progressbar [ref=e205] [cursor=pointer]
+            - generic [ref=e207] [cursor=pointer]:
+              - generic [ref=e208] [cursor=pointer]:
+                - generic [ref=e209] [cursor=pointer]: Entregables
+                - generic [ref=e210] [cursor=pointer]: 1/5
+              - generic [ref=e211] [cursor=pointer]:
+                - generic [ref=e212] [cursor=pointer]: Presupuesto
+                - generic [ref=e213] [cursor=pointer]: €9,800
+              - generic [ref=e214] [cursor=pointer]:
+                - generic [ref=e215] [cursor=pointer]: Entrega
+                - generic [ref=e216] [cursor=pointer]: 30 abr 2024
+            - paragraph [ref=e218] [cursor=pointer]: "Última actividad: 1 día ago"
+            - generic [ref=e219] [cursor=pointer]:
+              - link "Ver Proyecto" [ref=e220] [cursor=pointer]:
+                - /url: /client-portal/dashboard/proj-4
+                - button "Ver Proyecto" [ref=e221] [cursor=pointer]:
+                  - generic [ref=e222] [cursor=pointer]:
+                    - img
+                    - text: Ver Proyecto
+              - button [ref=e224] [cursor=pointer]:
+                - generic [ref=e225] [cursor=pointer]:
+                  - img
+```

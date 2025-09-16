@@ -16,17 +16,17 @@ import {
   Target,
   Award,
   Activity,
-  Download,
   RefreshCw,
   Filter,
 } from 'lucide-react';
 
 // Analytics Components
 import { KPICard } from '@/components/analytics/KPICard';
-import { ProjectStatusChart } from '@/components/analytics/ProjectStatusChart';
-import { TaskPriorityChart } from '@/components/analytics/TaskPriorityChart';
-import { ProductivityTrendChart } from '@/components/analytics/ProductivityTrendChart';
-import { ClientDistributionChart } from '@/components/analytics/ClientDistributionChart';
+// Temporarily commented out charts due to Recharts/Lodash import issues
+// import { ProjectStatusChart } from '@/components/analytics/ProjectStatusChart';
+// import { TaskPriorityChart } from '@/components/analytics/TaskPriorityChart';
+// import { ProductivityTrendChart } from '@/components/analytics/ProductivityTrendChart';
+// import { ClientDistributionChart } from '@/components/analytics/ClientDistributionChart';
 
 const Analytics: React.FC = () => {
   const { projects, isLoadingProjects } = useProjectContext();
@@ -83,31 +83,6 @@ const Analytics: React.FC = () => {
     };
   }, [projects, clients]);
 
-  const handleExportData = () => {
-    // Mock export functionality
-    const data = {
-      projects: projects.map(p => ({
-        name: p.name,
-        status: p.status,
-        tasksCount: p.tasks.length,
-        completedTasks: p.tasks.filter(t => t.status === 'completed').length,
-        clientName: clients.find(c => c.id === p.client_id)?.name || 'Sin cliente',
-      })),
-      summary: kpis,
-      exportDate: new Date().toISOString(),
-    };
-    
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `analytics-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-  };
 
   if (isLoadingProjects || isLoadingClients) {
     return (
@@ -133,15 +108,6 @@ const Analytics: React.FC = () => {
           <Badge variant="outline" className="text-xs">
             Actualizado hace {Math.floor(Math.random() * 10) + 1} min
           </Badge>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleExportData}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Exportar
-          </Button>
         </div>
       </div>
 
@@ -268,15 +234,43 @@ const Analytics: React.FC = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProjectStatusChart projects={projects} />
-            <TaskPriorityChart projects={projects} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Estado de Proyectos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Prioridad de Tareas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+              </CardContent>
+            </Card>
           </div>
-          <ProductivityTrendChart projects={projects} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencias de Productividad</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProjectStatusChart projects={projects} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Estado de Proyectos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Métricas de Proyectos</CardTitle>
@@ -331,7 +325,14 @@ const Analytics: React.FC = () => {
 
         <TabsContent value="tasks" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TaskPriorityChart projects={projects} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Prioridad de Tareas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Análisis de Tareas</CardTitle>
@@ -377,11 +378,25 @@ const Analytics: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          <ProductivityTrendChart projects={projects} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Tendencias de Productividad</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-6">
-          <ClientDistributionChart projects={projects} clients={clients} />
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribución por Cliente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Gráfico temporalmente deshabilitado</p>
+            </CardContent>
+          </Card>
           
           {/* Client Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

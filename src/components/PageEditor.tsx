@@ -8,7 +8,8 @@ import { showSuccess, showError } from "@/utils/toast";
 import { PAGE_TYPE_CONFIG, type Page, type PageType } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
-import LazyRichTextEditor from './LazyRichTextEditor';
+import { SecureTipTapEditor } from './SecureTipTapEditor';
+import { ComponentErrorBoundary } from "./ErrorBoundary";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -350,15 +351,14 @@ export const PageEditor = ({ projectId, page, onClose }: PageEditorProps) => {
       <Card className="min-h-[500px]">
         <CardContent className="p-6">
           {isEditing ? (
-            <LazyRichTextEditor
-              theme="snow"
-              value={content}
-              onChange={setContent}
-              modules={modules}
-              formats={formats}
-              className="min-h-[400px]"
-              placeholder="Escribe el contenido de tu página..."
-            />
+            <ComponentErrorBoundary>
+              <SecureTipTapEditor
+                value={content}
+                onChange={setContent}
+                className="min-h-[400px]"
+                placeholder="Escribe el contenido de tu página..."
+              />
+            </ComponentErrorBoundary>
           ) : (
             <div 
               className="prose prose-sm max-w-none quill-content min-h-[400px]"

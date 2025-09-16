@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,8 +33,6 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/context/ProjectContext";
-import { showError, showSuccess } from "@/utils/toast";
-import { ComponentErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 
 const TaskFormSchema = z.object({
   projectId: z.string().min(1, { message: "Debes seleccionar un proyecto." }),
@@ -46,17 +44,19 @@ const TaskFormSchema = z.object({
 });
 
 interface AddTaskDialogProps {
-  open: boolean; // Add open prop
-  onOpenChange: (open: boolean) => void; // Add onOpenChange prop
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  preselectedProjectId?: string;
 }
 
-export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
+export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddTaskDialogProps) => {
   const { projects, isLoadingProjects, addTaskToProject } = useProjectContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof TaskFormSchema>>({
     resolver: zodResolver(TaskFormSchema),
     defaultValues: {
-      projectId: "",
+      projectId: preselectedProjectId || "",
       title: "",
       description: "",
       startDate: undefined,
@@ -65,8 +65,16 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
     },
   });
 
+  // Update form when preselectedProjectId changes
+  React.useEffect(() => {
+    if (preselectedProjectId) {
+      form.setValue("projectId", preselectedProjectId);
+    }
+  }, [preselectedProjectId, form]);
+
   const onSubmit = async (values: z.infer<typeof TaskFormSchema>) => {
     setIsSubmitting(true);
+
     try {
       await addTaskToProject(
         values.projectId,
@@ -76,24 +84,34 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
         values.endDate || undefined,
         values.priority || "medium"
       );
-      form.reset();
-      onOpenChange(false); // Close dialog using onOpenChange
-      showSuccess("Tarea añadida exitosamente.");
+
+      form.reset({
+        projectId: preselectedProjectId || "",
+        title: "",
+        description: "",
+        startDate: undefined,
+        endDate: undefined,
+        priority: "medium",
+      });
+      onOpenChange(false);
     } catch (error) {
-      showError("Error al añadir la tarea.");
+      // Error is handled by ProjectContext.addTaskToProject() which shows error message
       console.error("Error adding task:", error);
+
+      // Don't close dialog on error - let user retry
+      // Don't reset form - preserve user input
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <ComponentErrorBoundary>
-      <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Añadir Nueva Tarea</DialogTitle>
         </DialogHeader>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -104,8 +122,8 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
                   <FormLabel>Proyecto</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isLoadingProjects || projects.length === 0}
+                    value={field.value}
+                    disabled={isLoadingProjects || projects.length === 0 || !!preselectedProjectId}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -135,20 +153,24 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
                 <FormItem>
                   <FormLabel>Título de la Tarea</FormLabel>
                   <FormControl>
-                    <Input placeholder="Título corto" {...field} />
+                    <Input placeholder="Mi Nueva Tarea" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descripción Detallada (Opcional)</FormLabel>
+                  <FormLabel>Descripción</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Descripción detallada..." {...field} />
+                    <Textarea
+                      placeholder="Descripción detallada de la tarea..."
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -215,12 +237,13 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="endDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Fecha de Fin / Límite (Opcional)</FormLabel>
+                  <FormLabel>Fecha Límite (Opcional)</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -254,18 +277,16 @@ export const AddTaskDialog = ({ open, onOpenChange }: AddTaskDialogProps) => {
                 </FormItem>
               )}
             />
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
-              loading={isSubmitting}
               disabled={isSubmitting}
             >
-              Añadir Tarea
+              {isSubmitting ? "Guardando..." : "Guardar Tarea"}
             </Button>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-    </ComponentErrorBoundary>
   );
 };

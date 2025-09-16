@@ -1,13 +1,15 @@
+import React, { useState } from "react";
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
-import { useProjectContext, Task } from "@/context/ProjectContext";
+import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trash2, User, Calendar, Folder, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Trash2, User, Calendar, Folder, CheckCircle2, Clock, Plus } from "lucide-react";
 import { NotesSection } from "@/components/NotesSection";
 import { PagesSection } from "@/components/PagesSection";
-import { TasksSection } from "@/components/TasksSection";
+import { TaskBoard } from "@/components/TaskBoard";
+import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import {
@@ -22,8 +24,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { showSuccess, showError } from "@/utils/toast";
-import { useSession } from "@/context/SessionContext";
+import { showError } from "@/utils/toast";
+import { useSession } from "@/hooks/useSession";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const getStatusVariant = (status: string) => {
@@ -60,6 +62,47 @@ const getStatusLabel = (status: string) => {
     default:
       return 'Pendiente';
   }
+};
+
+const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; project: any }) => {
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Task Header */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Gestión de Tareas</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Organiza y gestiona las tareas del proyecto con tablero Kanban
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsTaskDialogOpen(true)}
+            className="h-10 relative flex items-center justify-center pl-9 pr-4 whitespace-nowrap text-sm font-medium"
+          >
+            <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+            <span className="text-sm font-medium">Añadir Tarea</span>
+          </Button>
+        </div>
+
+        <AddTaskDialog
+          open={isTaskDialogOpen}
+          onOpenChange={setIsTaskDialogOpen}
+          preselectedProjectId={projectId}
+        />
+      </div>
+
+      {/* Unified TaskBoard Component */}
+      <TaskBoard
+        tasks={project.tasks}
+        projectId={projectId}
+        layout="kanban"
+        containerClass="max-w-6xl mx-auto"
+      />
+    </div>
+  );
 };
 
 const ProjectDetail = () => {
@@ -114,7 +157,7 @@ const ProjectDetail = () => {
   const totalTasks = project.tasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  const totalPages = project.pages?.length || 0;
+  // const totalPages = project.pages?.length || 0;
   const totalNotes = project.notes?.length || 0;
   const hasLegacyNotes = totalNotes > 0;
 
@@ -134,7 +177,8 @@ const ProjectDetail = () => {
     <div className="min-h-screen bg-gray-50/30 dark:bg-gray-900/30">
       <div className="container mx-auto p-4 max-w-6xl">
         {/* Navigation */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 mb-6">
           <Link to="/projects">
             <Button variant="ghost" size="icon" className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
@@ -147,9 +191,10 @@ const ProjectDetail = () => {
             {" / " + project.name}
           </div>
         </div>
+        </div>
 
         {/* Project Header - Notion Style */}
-        <div className="space-y-6 mb-8">
+        <div className="max-w-6xl mx-auto space-y-6 mb-8">
           {/* Main Title Section */}
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
@@ -275,49 +320,52 @@ const ProjectDetail = () => {
           </div>
         </div>
 
-        {/* Main Content - Notion Style Layout */}
-        <div className="space-y-8">
-          {/* Pages Section - Prominent Position */}
-          <div>
-            <PagesSection projectId={project.id} />
+        {/* Main Content - Tabbed Layout */}
+        <Tabs defaultValue="tasks" className="w-full">
+          <div className="max-w-6xl mx-auto">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="tasks" className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Tareas
+              </TabsTrigger>
+              <TabsTrigger value="documentation" className="flex items-center gap-2">
+                📚 Documentación
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          {/* Tasks Section */}
-          <div>
-            <TasksSection projectId={project.id} />
-          </div>
+          <TabsContent value="tasks" className="space-y-6">
+            <ProjectTasksWrapper projectId={project.id} project={project} />
+          </TabsContent>
 
-          {/* Legacy Notes Section - Only show if there are existing notes */}
-          {hasLegacyNotes && (
-            <div>
-              <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    📋 Notas Heredadas 
-                    <Badge variant="secondary" className="text-xs">
-                      Sistema anterior ({totalNotes})
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Estas son notas del sistema anterior. Te recomendamos migrarlas a páginas para mejor organización.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="notes" className="w-full">
-                    <TabsList className="grid w-full grid-cols-1">
-                      <TabsTrigger value="notes">Ver Notas Heredadas</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="notes">
-                      <NotesSection projectId={project.id} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
+          <TabsContent value="documentation" className="space-y-6">
+            <div className="max-w-6xl mx-auto space-y-6">
+              <PagesSection projectId={project.id} />
+
+              {/* Legacy Notes Section - Only show if there are existing notes */}
+              {hasLegacyNotes && (
+                <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      📋 Notas Heredadas
+                      <Badge variant="secondary" className="text-xs">
+                        Sistema anterior ({totalNotes})
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Estas son notas del sistema anterior. Te recomendamos migrarlas a páginas para mejor organización.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <NotesSection projectId={project.id} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
 
-        <div className="pt-12">
+        <div className="max-w-6xl mx-auto pt-12">
           <MadeWithDyad />
         </div>
       </div>

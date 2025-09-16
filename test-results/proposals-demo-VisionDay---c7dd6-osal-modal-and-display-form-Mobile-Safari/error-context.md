@@ -1,0 +1,242 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - list
+    - region "Notifications alt+T"
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /client-portal/techcorp
+              - img
+              - text: Volver a todos los proyectos
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic: VD
+                - generic:
+                  - heading [level=1]: Rediseño de Aplicación Móvil
+                  - paragraph: Rediseño completo de la aplicación móvil con enfoque en UX mejorada
+              - generic:
+                - generic: En Progreso
+                - generic:
+                  - img
+                  - generic: "Entrega: 30 de marzo, 2024"
+                - generic:
+                  - img
+                  - generic: "Progreso: 65%"
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: M
+                  - generic:
+                    - heading [level=3]: María González
+                    - paragraph: Tu Diseñadora UI/UX
+                    - paragraph: maria@visionday.design
+                - generic:
+                  - button:
+                    - generic:
+                      - img
+                      - text: Contactar
+                  - button:
+                    - generic:
+                      - img
+          - generic:
+            - generic:
+              - generic: Progreso del Proyecto
+              - generic: 65%
+            - progressbar
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=3]:
+                  - img
+                  - text: Entregables del Proyecto
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - heading [level=3]: User Research & Personas
+                          - generic: Completado
+                        - paragraph: "Fecha límite: 30 de enero"
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: User_Research_Report.pdf
+                            - generic: 2.4 MB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                          - generic:
+                            - img
+                            - generic: Personas_Document.pdf
+                            - generic: 1.8 MB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - heading [level=3]: Wireframes & User Flow
+                          - generic: Completado
+                        - paragraph: "Fecha límite: 15 de febrero"
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: Wireframes_v2.fig
+                            - generic: 4.2 MB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                          - generic:
+                            - img
+                            - generic: User_Flow_Diagram.png
+                            - generic: 890 KB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - heading [level=3]: UI Design & Prototypes
+                          - generic: En Progreso
+                        - paragraph: "Fecha límite: 1 de marzo"
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: UI_Design_System.fig
+                            - generic: 8.1 MB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                          - generic:
+                            - img
+                            - generic: Mobile_Prototype.fig
+                            - generic: 12.3 MB
+                            - generic:
+                              - button:
+                                - generic:
+                                  - img
+                              - button:
+                                - generic:
+                                  - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - heading [level=3]: Final Assets & Handoff
+                          - generic: Pendiente
+                        - paragraph: "Fecha límite: 30 de marzo"
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=3]: Estadísticas
+              - generic:
+                - generic:
+                  - generic: Entregables
+                  - generic: 2/4 Completados
+                - generic:
+                  - generic: Días restantes
+                  - generic: 23 días
+                - generic:
+                  - generic: Comentarios
+                  - generic: 8 pendientes
+            - generic:
+              - generic:
+                - heading [level=3]: Actividad Reciente
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - paragraph: Uploaded new prototype version
+                            - paragraph: 2 horas ago
+                        - generic:
+                          - generic:
+                            - paragraph: Comentario añadido en wireframes
+                            - paragraph: 1 día ago
+                        - generic:
+                          - generic:
+                            - paragraph: UI Design completado
+                            - paragraph: 3 días ago
+            - generic:
+              - generic:
+                - heading [level=3]: Acciones Rápidas
+              - generic:
+                - button [expanded]:
+                  - generic:
+                    - img
+                    - text: Proponer Nueva Tarea
+                - button:
+                  - generic:
+                    - img
+                    - text: Enviar Comentarios
+                - button:
+                  - generic:
+                    - img
+                    - text: Descargar Todo
+                - button:
+                  - generic:
+                    - img
+                    - text: Ver en Figma
+  - dialog "Proponer Nueva Tarea" [ref=e1]:
+    - heading "Proponer Nueva Tarea" [level=2] [ref=e3]
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: Título de la tarea *
+        - textbox "Título de la tarea *" [active] [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: Descripción *
+        - textbox "Descripción *" [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: Prioridad
+          - combobox "Prioridad" [ref=e14]:
+            - option "Baja"
+            - option "Media" [selected]
+            - option "Alta"
+        - generic [ref=e15]:
+          - generic [ref=e16]: Fecha deseada
+          - textbox "Fecha deseada" [ref=e17]
+    - generic [ref=e18]:
+      - button "Cancelar" [ref=e19] [cursor=pointer]:
+        - generic [ref=e20] [cursor=pointer]: Cancelar
+      - button "Enviar Propuesta" [ref=e22] [cursor=pointer]:
+        - generic [ref=e23] [cursor=pointer]: Enviar Propuesta
+    - button "Close" [ref=e25] [cursor=pointer]:
+      - img [ref=e26] [cursor=pointer]
+      - generic [ref=e29] [cursor=pointer]: Close
+```

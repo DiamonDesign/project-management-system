@@ -2,12 +2,46 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+/**
+ * Generate a cryptographically secure password
+ */
+function generateSecurePassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  const length = 16;
+  let password = '';
+
+  // Use crypto.getRandomValues for secure random generation
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+
+  for (let i = 0; i < length; i++) {
+    password += chars[array[i] % chars.length];
+  }
+
+  return password;
+}
+
+// Secure CORS configuration
+const allowedOrigins = [
+  Deno.env.get('VITE_APP_URL') || 'http://localhost:8080',
+  'https://nktdqpzxzouxcsvmijvt.supabase.co'
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+
+  return {
+    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400',
+  };
+}
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -56,7 +90,7 @@ serve(async (req) => {
       console.log(`User with email ${clientEmail} already exists: ${clientAuthUser.id}`);
     } else {
       // Create a new user for the client portal
-      temporaryPassword = uuidv4().substring(0, 12); // Generate a temporary password
+      temporaryPassword = generateSecurePassword(); // Generate a cryptographically secure password
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: clientEmail,
         password: temporaryPassword,

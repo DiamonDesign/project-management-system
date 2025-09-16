@@ -1,7 +1,7 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { Navigate } from "react-router-dom";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 

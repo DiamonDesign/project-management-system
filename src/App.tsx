@@ -10,10 +10,13 @@ import { ClientProvider } from "./context/ClientContext";
 import { Layout } from "./components/Layout";
 import { ErrorBoundary, PageErrorBoundary } from "./components/ErrorBoundary";
 import { PageLoading } from "@/components/ui/loading";
+import { RequireAuth, ClientPortalRoute } from "@/components/auth/ProtectedRoute";
 
 // Code splitting with React.lazy()
 const Index = React.lazy(() => import("./pages/Index"));
+const Landing = React.lazy(() => import("./pages/Landing"));
 const Projects = React.lazy(() => import("./pages/Projects"));
+const ArchivedProjects = React.lazy(() => import("./pages/ArchivedProjects"));
 const ProjectDetail = React.lazy(() => import("./pages/ProjectDetail"));
 const Clients = React.lazy(() => import("./pages/Clients"));
 const ClientDetail = React.lazy(() => import("./pages/ClientDetail"));
@@ -68,6 +71,9 @@ const App = () => (
                 <Route path="/" element={
                   <LazyRoute><Index /></LazyRoute>
                 } />
+                <Route path="/landing" element={
+                  <LazyRoute><Landing /></LazyRoute>
+                } />
                 <Route path="/login" element={
                   <LazyRoute><Login /></LazyRoute>
                 } />
@@ -75,32 +81,55 @@ const App = () => (
                   <LazyRoute><ClientPortalInvite /></LazyRoute>
                 } />
                 <Route path="/client-portal/dashboard" element={
-                  <LazyRoute><ClientPortalDashboard /></LazyRoute>
+                  <ClientPortalRoute>
+                    <LazyRoute><ClientPortalDashboard /></LazyRoute>
+                  </ClientPortalRoute>
                 } />
                 <Route element={<Layout />}>
                   <Route path="/dashboard" element={
-                    <LazyRoute><Dashboard /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Dashboard /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/projects" element={
-                    <LazyRoute><Projects /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Projects /></LazyRoute>
+                    </RequireAuth>
+                  } />
+                  <Route path="/projects/archived" element={
+                    <RequireAuth>
+                      <LazyRoute><ArchivedProjects /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/projects/:id" element={
-                    <LazyRoute><ProjectDetail /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><ProjectDetail /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/clients" element={
-                    <LazyRoute><Clients /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Clients /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/clients/:id" element={
-                    <LazyRoute><ClientDetail /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><ClientDetail /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/tasks" element={
-                    <LazyRoute><Tasks /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Tasks /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/profile" element={
-                    <LazyRoute><Profile /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Profile /></LazyRoute>
+                    </RequireAuth>
                   } />
                   <Route path="/analytics" element={
-                    <LazyRoute><Analytics /></LazyRoute>
+                    <RequireAuth>
+                      <LazyRoute><Analytics /></LazyRoute>
+                    </RequireAuth>
                   } />
                 </Route>
                 <Route path="*" element={

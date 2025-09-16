@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import type { PerformanceExtended, NavigatorExtended } from '@/types';
 
 // Virtual scrolling hook
 export const useVirtualScrolling = <T,>({
@@ -134,7 +135,7 @@ export const useDebounce = <T,>(value: T, delay: number): T => {
 };
 
 // Throttled callback hook
-export const useThrottle = <T extends (...args: any[]) => any>(
+export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ) => {
@@ -232,7 +233,7 @@ export const useMemoryMonitoring = () => {
   useEffect(() => {
     if ('memory' in performance && process.env.NODE_ENV === 'development') {
       const updateMemoryInfo = () => {
-        const memory = (performance as any).memory;
+        const memory = (performance as PerformanceExtended).memory;
         if (memory) {
           const used = memory.usedJSHeapSize;
           const total = memory.totalJSHeapSize;
@@ -301,7 +302,7 @@ export const useSmartPrefetch = () => {
 
     // Only prefetch on good connections
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
+      const connection = (navigator as NavigatorExtended).connection;
       if (connection && (connection.saveData || connection.effectiveType === 'slow-2g')) {
         return;
       }

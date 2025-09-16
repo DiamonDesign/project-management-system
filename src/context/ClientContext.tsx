@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { showSuccess, showError } from "@/utils/toast";
-import { useLoadingTimeout } from "@/hooks/useLoadingTimeout";
-import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import { ClientFormSchema, type ClientFormData } from "@/lib/schemas";
 
 // Define las interfaces para Cliente
 export interface Client {
@@ -20,22 +18,12 @@ export interface Client {
   created_at: string;
 }
 
-// Define el esquema para añadir un nuevo cliente
-export const ClientFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "El nombre del cliente debe tener al menos 2 caracteres.",
-  }),
-  email: z.string().email("Formato de email inválido.").optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
-  company: z.string().optional().or(z.literal("")),
-  address: z.string().optional().or(z.literal("")), // Nuevo campo
-  cif: z.string().optional().or(z.literal("")),     // Nuevo campo
-});
+// ClientFormSchema moved to @/lib/schemas to fix Fast Refresh warnings
 
 interface ClientContextType {
   clients: Client[];
   isLoadingClients: boolean;
-  addClient: (clientData: z.infer<typeof ClientFormSchema>) => Promise<void>;
+  addClient: (clientData: ClientFormData) => Promise<void>;
   updateClient: (clientId: string, updatedFields: Partial<Client>) => Promise<void>;
   deleteClient: (clientId: string) => Promise<void>;
 }
@@ -47,11 +35,6 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
   
-  // Safety timeout to prevent infinite loading (15 seconds)
-  useLoadingTimeout(isLoadingClients, setIsLoadingClients, 15000);
-  
-  // Retry mechanism for failed requests
-  const { executeWithRetry } = useRetryableRequest();
 
   const fetchClients = useCallback(async () => {
     if (!user) {
@@ -62,28 +45,11 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 
     setIsLoadingClients(true);
     
-    const result = await executeWithRetry(
-      () => supabase
-        .from("clients")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false }),
-      {
-        maxRetries: 2,
-        retryDelayMs: 1000,
-        timeoutMs: 8000
-      },
-      'clientes'
-    );
-
-    if (!result) {
-      // Request failed after all retries, set empty state
-      setClients([]);
-      setIsLoadingClients(false);
-      return;
-    }
-
-    const { data, error } = result;
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching clients:", error);
@@ -118,35 +84,39 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoadingSession, fetchClients]);
 
   const addClient = useCallback(async (clientData: z.infer<typeof ClientFormSchema>) => {
-    if (!user) {
+    if (!user?.id) {
       showError("Debes iniciar sesión para añadir clientes.");
       return;
     }
+    
     try {
-      // Explicitly assign properties to ensure 'name' is not optional
-      const newClient: Omit<Client, "id" | "created_at" | "notes"> = {
-        user_id: user.id,
+      const newClient = {
+        user_id: user.id, // Use context user ID directly
         name: clientData.name,
-        email: clientData.email || undefined,
-        phone: clientData.phone || undefined,
-        company: clientData.company || undefined,
-        address: clientData.address || undefined,
-        cif: clientData.cif || undefined,
+        email: clientData.email || null,
+        phone: clientData.phone || null,
+        company: clientData.company || null,
+        address: clientData.address || null,
+        cif: clientData.cif || null,
       };
+      
       const { data, error } = await supabase
         .from("clients")
         .insert(newClient)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      setClients((prev) => [{ ...data, notes: [] } as Client, ...prev]); // Asegurar que 'notes' esté presente
+      setClients((prev) => [{ ...data, notes: [] } as Client, ...prev]);
       showSuccess("Cliente añadido exitosamente.");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       showError("Error al añadir el cliente: " + errorMessage);
       console.error("Error adding client:", error);
+      throw error;
     }
   }, [user]);
 

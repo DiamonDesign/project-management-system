@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Project, Task } from '@/context/ProjectContext';
+import type { RechartsTooltipProps } from '@/types';
 
 interface TaskPriorityChartProps {
   projects: Project[];
@@ -43,12 +44,12 @@ export const TaskPriorityChart: React.FC<TaskPriorityChartProps> = ({ projects }
     }));
   }, [projects]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: RechartsTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="font-medium mb-2">{`Prioridad ${label}`}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.dataKey === 'completed' ? 'Completadas' : 'Pendientes'}: {entry.value}
             </p>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Project } from '@/context/ProjectContext';
 import { Client } from '@/context/ClientContext';
+import type { RechartsTooltipProps } from '@/types';
 import { Badge } from '@/components/ui/badge';
 
 interface ClientDistributionChartProps {
@@ -63,7 +64,7 @@ export const ClientDistributionChart: React.FC<ClientDistributionChartProps> = (
     return clientData;
   }, [projects, clients]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: RechartsTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

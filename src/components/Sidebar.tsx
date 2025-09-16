@@ -16,7 +16,7 @@ import {
   Archive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
 import { Badge } from "@/components/ui/badge";
@@ -35,14 +35,15 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
   const { signOut, user } = useSession();
   const location = useLocation();
 
-  const { projects } = useProjectContext();
+  const { projects, archivedProjects } = useProjectContext();
   const { clients } = useClientContext();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  
+
   // Calculate stats for badges
   const activeProjects = projects.filter(p => p.status === 'in-progress').length;
   const pendingTasks = projects.flatMap(p => p.tasks.filter(t => t.status !== 'completed')).length;
   const totalClients = clients.length;
+  const archivedCount = archivedProjects.length;
   
   const navItems = [
     {
@@ -72,6 +73,13 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
       icon: Users,
       requiresAuth: true,
       badge: null,
+    },
+    {
+      name: "Archivados",
+      href: "/projects/archived",
+      icon: Archive,
+      requiresAuth: true,
+      badge: archivedCount > 0 ? archivedCount.toString() : null,
     },
     {
       name: "Analíticas",
@@ -198,14 +206,17 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
         
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-sm font-medium hover:bg-sidebar-accent hover:translate-x-1 transition-all duration-200 group px-3 py-2.5 gap-3"
+          className="w-full h-10 relative flex items-center justify-between pl-11 pr-3 whitespace-nowrap text-sm font-medium hover:bg-sidebar-accent hover:translate-x-1 transition-all duration-200 group"
           onClick={onOpenSearch}
         >
-          <div className="flex items-center justify-center w-4 h-4 shrink-0">
-            <Search className="h-4 w-4" />
-          </div>
-          <span className="flex-1 text-left">Buscar...</span>
-          <span className="text-xs text-muted-foreground opacity-60 group-hover:opacity-100">⌘K</span>
+          {/* Icono absoluto a la izquierda */}
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          
+          {/* Texto alineado a la izquierda */}
+          <span className="text-sm font-medium text-left">Buscar...</span>
+          
+          {/* Shortcut absoluto a la derecha */}
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground opacity-60 group-hover:opacity-100 pointer-events-none">⌘K</span>
         </Button>
         
         <QuickActionsButton />

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentication Flow</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        .success { border-left-color: #16a34a; }
+        .error { border-left-color: #dc2626; }
+        .warning { border-left-color: #ea580c; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Authentication & Project Creation Test</h1>
+    <p>This tool tests the critical authentication and project creation flow to identify any remaining issues.</p>
+
+    <div class="test-section">
+        <h2>🚀 Environment Check</h2>
+        <button onclick="checkEnvironment()">Check Environment</button>
+        <div id="env-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔐 Authentication Flow Test</h2>
+        <button onclick="testAuthFlow()">Test Authentication</button>
+        <div id="auth-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📂 Project Creation Test</h2>
+        <button onclick="testProjectCreation()">Test Project Creation</button>
+        <div id="project-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Console Monitoring</h2>
+        <button onclick="startConsoleMonitoring()">Start Monitoring</button>
+        <button onclick="clearConsoleLog()">Clear Log</button>
+        <div class="log" id="console-log"></div>
+    </div>
+
+    <script>
+        // Test environment configuration
+        async function checkEnvironment() {
+            const results = document.getElementById('env-results');
+            results.innerHTML = '<p>Checking environment...</p>';
+            
+            try {
+                // Check if app is running
+                const response = await fetch('http://localhost:8080/');
+                const isAppRunning = response.ok;
+                
+                // Check if Supabase URL is accessible
+                const supabaseUrl = 'https://nktdqpzxzouxcsvmijvt.supabase.co';
+                const supabaseResponse = await fetch(supabaseUrl);
+                const isSupabaseAccessible = supabaseResponse.ok;
+                
+                let html = `
+                    <div class="results">
+                        <div>
+                            <h4>Application Status</h4>
+                            <p class="${isAppRunning ? 'success' : 'error'}">
+                                ${isAppRunning ? '✅ App running on localhost:8080' : '❌ App not accessible'}
+                            </p>
+                        </div>
+                        <div>
+                            <h4>Supabase Connectivity</h4>
+                            <p class="${isSupabaseAccessible ? 'success' : 'error'}">
+                                ${isSupabaseAccessible ? '✅ Supabase accessible' : '❌ Supabase connection issues'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                results.innerHTML = html;
+            } catch (error) {
+                results.innerHTML = `<p class="error">❌ Environment check failed: ${error.message}</p>`;
+            }
+        }
+
+        // Test authentication flow
+        async function testAuthFlow() {
+            const results = document.getElementById('auth-results');
+            results.innerHTML = '<p>Testing authentication flow...</p>';
+            
+            try {
+                // Open application in a new window for testing
+                const testWindow = window.open('http://localhost:8080/', 'auth-test', 'width=800,height=600');
+                
+                let html = `
+                    <div class="results">
+                        <div>
+                            <h4>Test Instructions</h4>
+                            <ol>
+                                <li>Application opened in new window</li>
+                                <li>Try to log in with your credentials</li>
+                                <li>Check if you're redirected to dashboard</li>
+                                <li>Monitor console for any errors</li>
+                                <li>Try creating a project</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <h4>Expected Behavior</h4>
+                            <ul>
+                                <li>✅ Login redirects to /dashboard</li>
+                                <li>✅ No "session is not defined" errors</li>
+                                <li>✅ SessionContext loads properly</li>
+                                <li>✅ ProjectContext initializes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="warning">⚠️ Check the browser console in the test window for any errors.</p>
+                `;
+                
+                results.innerHTML = html;
+                
+                // Set up monitoring for the new window
+                setTimeout(() => {
+                    if (testWindow.closed) {
+                        results.innerHTML += '<p class="error">❌ Test window was closed</p>';
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                results.innerHTML = `<p class="error">❌ Authentication test failed: ${error.message}</p>`;
+            }
+        }
+
+        // Test project creation
+        async function testProjectCreation() {
+            const results = document.getElementById('project-results');
+            results.innerHTML = '<p>Testing project creation...</p>';
+            
+            try {
+                // Instructions for manual testing
+                let html = `
+                    <div class="results">
+                        <div>
+                            <h4>Project Creation Test Steps</h4>
+                            <ol>
+                                <li>Ensure you're logged in to the app</li>
+                                <li>Go to Dashboard or Projects page</li>
+                                <li>Click "Add Project" button</li>
+                                <li>Fill out the form with test data</li>
+                                <li>Submit the form</li>
+                                <li>Check if project appears in list</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <h4>Test Data to Use</h4>
+                            <ul>
+                                <li><strong>Name:</strong> Test Project ${Date.now()}</li>
+                                <li><strong>Description:</strong> Testing auth fix</li>
+                                <li><strong>Status:</strong> Pending</li>
+                                <li><strong>Client:</strong> Leave blank</li>
+                                <li><strong>Due Date:</strong> Tomorrow</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="success">✅ If project creation works without errors, the fix is successful!</p>
+                `;
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<p class="error">❌ Project creation test setup failed: ${error.message}</p>`;
+            }
+        }
+
+        // Monitor console messages
+        let consoleLog = [];
+        let isMonitoring = false;
+
+        function startConsoleMonitoring() {
+            if (isMonitoring) return;
+            
+            isMonitoring = true;
+            consoleLog = [];
+            
+            // Override console methods
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            console.log = function(...args) {
+                consoleLog.push({type: 'log', message: args.join(' '), time: new Date().toLocaleTimeString()});
+                updateConsoleDisplay();
+                return originalLog.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                consoleLog.push({type: 'error', message: args.join(' '), time: new Date().toLocaleTimeString()});
+                updateConsoleDisplay();
+                return originalError.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+                consoleLog.push({type: 'warn', message: args.join(' '), time: new Date().toLocaleTimeString()});
+                updateConsoleDisplay();
+                return originalWarn.apply(console, args);
+            };
+            
+            updateConsoleDisplay();
+        }
+
+        function updateConsoleDisplay() {
+            const logDiv = document.getElementById('console-log');
+            logDiv.innerHTML = consoleLog.map(entry => 
+                `[${entry.time}] ${entry.type.toUpperCase()}: ${entry.message}`
+            ).join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearConsoleLog() {
+            consoleLog = [];
+            updateConsoleDisplay();
+        }
+
+        // Auto-start environment check
+        window.addEventListener('load', () => {
+            checkEnvironment();
+            startConsoleMonitoring();
+        });
+    </script>
+</body>
+</html>

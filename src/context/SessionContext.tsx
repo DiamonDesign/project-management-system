@@ -3,167 +3,372 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "@/utils/toast";
+import type { AppError } from "@/types";
+import {
+  AuthUser,
+  AuthSession,
+  SessionValidationResult,
+  UserRole,
+  Permission,
+  hasPermission,
+  hasAllPermissions,
+  hasRole,
+  ROLE_PERMISSIONS
+} from "@/types/auth";
+import { 
+  validateSession, 
+  getUserDisplayName, 
+  getUserInitials,
+  createAuthError
+} from "@/lib/auth-utils";
 
-// Define the Profile interface
-interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  updated_at: string | null;
-}
-
+// Enhanced SessionContext interface with type-safe authentication
 interface SessionContextType {
-  session: Session | null;
-  user: User | null;
-  profile: Profile | null; // Add profile to context
+  // Authentication state
+  session: AuthSession | null;
+  user: AuthUser | null;
+  
+  // Loading states
   isLoading: boolean;
+  isSigningOut: boolean;
+  
+  // Authentication methods
   signOut: () => Promise<void>;
-  updateProfile: (newProfileData: Partial<Profile>) => Promise<void>; // Add updateProfile function
+  signIn: (email: string, password: string) => Promise<void>;
+  
+  // Permission helpers
+  hasPermission: (permission: Permission) => boolean;
+  hasRole: (role: UserRole) => boolean;
+  
+  // Display helpers
+  displayName: string;
+  initials: string;
 }
 
-const SessionContext = createContext<SessionContextType | undefined>(undefined);
+export const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionContextProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null); // State for profile
+  // Enhanced state with type safety
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  
+  // Loading states
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  
+  // Emergency fallback flag
+  const [emergencyMode, setEmergencyMode] = useState(false);
+  
   const navigate = useNavigate();
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+  // Enhanced user enhancement with role and permissions
+  const enhanceUser = async (baseUser: User): Promise<AuthUser | null> => {
+    try {
+      
+      // Add timeout to database query to prevent hanging
+      const profileQuery = supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", baseUser.id)
+        .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      // It's possible a profile doesn't exist immediately after signup,
-      // or if the user was created before the trigger was set up.
-      // We don't want to show an error toast here, just set profile to null.
-      setProfile(null);
-    } else {
-      setProfile(data as Profile);
+      // Race condition: query vs timeout
+      const profileResult = await Promise.race([
+        profileQuery,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile query timeout')), 2000)
+        )
+      ]);
+
+      const { data: profileData, error: profileError } = profileResult as any;
+      
+      
+      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = not found
+        console.error("Error fetching profile:", profileError);
+      }
+      
+      // Default role for new users or fallback
+      const userRole: UserRole = profileData?.role || 'freelancer';
+      
+      const enhancedUser: AuthUser = {
+        id: baseUser.id,
+        email: baseUser.email || '',
+        role: userRole,
+        profile: profileData ? {
+          full_name: profileData.full_name || `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
+          avatar_url: profileData.avatar_url,
+          company: profileData.company,
+          bio: profileData.bio,
+          website: profileData.website,
+          location: profileData.location,
+          phone: profileData.phone,
+          timezone: profileData.timezone,
+        } : undefined,
+        metadata: {
+          created_at: baseUser.created_at,
+          last_login: profileData?.last_login,
+          login_count: profileData?.login_count,
+          email_verified: !!baseUser.email_confirmed_at,
+          two_factor_enabled: false // TODO: implement 2FA
+        },
+        client_portal_access: (profileData && typeof profileData.client_portal_access === 'object') ? {
+          is_client: profileData.client_portal_access?.is_client || false,
+          assigned_projects: Array.isArray(profileData.client_portal_access?.assigned_projects) ? profileData.client_portal_access.assigned_projects : [],
+          invite_token: profileData.client_portal_access?.invite_token,
+          invited_by: profileData.client_portal_access?.invited_by,
+          invited_at: profileData.client_portal_access?.invited_at
+        } : undefined
+      };
+      
+      return enhancedUser;
+    } catch (error) {
+      console.error('[SessionContext] User enhancement failed:', error);
+      
+      // If enhancement fails, return a basic user without profile data
+      if (error instanceof Error && error.message.includes('timeout')) {
+        console.warn('[SessionContext] Using basic user due to timeout');
+        return {
+          id: baseUser.id,
+          email: baseUser.email || '',
+          role: 'freelancer',
+          metadata: {
+            created_at: baseUser.created_at,
+            email_verified: !!baseUser.email_confirmed_at,
+            two_factor_enabled: false
+          }
+        };
+      }
+      
+      return null;
     }
   };
 
+  // Initialize session on mount
   useEffect(() => {
+    let isMounted = true;
+    
+    const initializeSession = async () => {
+      try {
+        
+        // Set a timeout to prevent infinite loading
+        const sessionTimeout = setTimeout(() => {
+          console.warn('[SessionContext] Session initialization timeout - activating emergency mode');
+          if (isMounted) {
+            setEmergencyMode(true);
+            setSession(null);
+            setUser(null);
+            setIsLoading(false);
+          }
+        }, 3000); // 3 second timeout - much more aggressive
+        
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[SessionContext] Session initialization error:', error);
+          clearTimeout(sessionTimeout);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (currentSession && currentSession.user && isMounted) {
+          const enhancedUser = await enhanceUser(currentSession.user);
+          
+          if (enhancedUser && isMounted) {
+            const authSession: AuthSession = {
+              user: enhancedUser,
+              access_token: currentSession.access_token,
+              refresh_token: currentSession.refresh_token,
+              expires_at: currentSession.expires_at,
+              token_type: 'bearer'
+            };
+            setSession(authSession);
+            setUser(enhancedUser);
+          } else if (isMounted) {
+            console.warn('[SessionContext] User enhancement failed, continuing without enhanced data');
+          }
+        } else {
+        }
+        
+        clearTimeout(sessionTimeout);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('[SessionContext] Session initialization failed:', error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    initializeSession();
+    
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        setIsLoading(false);
-
-        if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
-        } else {
-          setProfile(null);
-        }
-
-        if (event === "SIGNED_IN") {
-          showSuccess("Has iniciado sesión exitosamente.");
-          navigate("/dashboard"); // Redirect to dashboard as per user request
-        } else if (event === "SIGNED_OUT") {
-          showSuccess("Has cerrado sesión.");
-          navigate("/login");
-        } else if (event === "USER_UPDATED") {
-          // If user metadata is updated, refetch profile
-          if (currentSession?.user) {
-            await fetchProfile(currentSession.user.id);
+        
+        if (!isMounted) return;
+        
+        try {
+          if (event === 'SIGNED_IN' && currentSession) {
+            const enhancedUser = await enhanceUser(currentSession.user);
+            if (enhancedUser && isMounted) {
+              const authSession: AuthSession = {
+                user: enhancedUser,
+                access_token: currentSession.access_token,
+                refresh_token: currentSession.refresh_token,
+                expires_at: currentSession.expires_at,
+                token_type: 'bearer'
+              };
+              setSession(authSession);
+              setUser(enhancedUser);
+              
+              // Navigate based on user type
+              if (enhancedUser.client_portal_access?.is_client) {
+                navigate('/client-portal/dashboard');
+              } else {
+                navigate('/dashboard');
+              }
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setSession(null);
+            setUser(null);
+            navigate('/login');
+          } else if (event === 'TOKEN_REFRESHED' && currentSession) {
+            const enhancedUser = await enhanceUser(currentSession.user);
+            if (enhancedUser && isMounted) {
+              const authSession: AuthSession = {
+                user: enhancedUser,
+                access_token: currentSession.access_token,
+                refresh_token: currentSession.refresh_token,
+                expires_at: currentSession.expires_at,
+                token_type: 'bearer'
+              };
+              setSession(authSession);
+              setUser(enhancedUser);
+            }
+          }
+        } catch (error) {
+          console.error('[SessionContext] Auth state change error:', error);
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
           }
         }
       }
     );
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      showError("Error al cerrar sesión: " + error.message);
+  // Sign in method
+  const signIn = async (email: string, password: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      showSuccess("¡Bienvenido! Has iniciado sesión correctamente.");
+    } catch (error: unknown) {
+      const appError = error as AppError;
+      console.error("Error signing in:", error);
+      const message = appError?.message || "Error al iniciar sesión";
+      showError(message);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateProfile = async (newProfileData: Partial<Profile>) => {
-    if (!user) {
-      showError("Debes iniciar sesión para actualizar tu perfil.");
-      return;
-    }
+  // Sign out method
+  const signOut = async (): Promise<void> => {
     try {
-      const { error, data } = await supabase
-        .from("profiles")
-        .update(newProfileData)
-        .eq("id", user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setProfile((prev) => (prev ? { ...prev, ...data } : data as Profile));
-      showSuccess("Perfil actualizado exitosamente.");
-      return data;
+      setIsSigningOut(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Clear local state
+      setSession(null);
+      setUser(null);
+      
+      showSuccess("Has cerrado sesión correctamente.");
+      navigate('/login');
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      showError("Error al actualizar el perfil: " + errorMessage);
-      console.error("Error updating profile:", error);
-      throw error; // Re-throw to allow form to handle errors
+      const appError = error as AppError;
+      console.error("Error signing out:", error);
+      const message = error?.message || "Error al cerrar sesión";
+      showError(message);
+      throw error;
+    } finally {
+      setIsSigningOut(false);
     }
+  };
+
+  // Permission helpers
+  const userHasPermission = (permission: Permission): boolean => {
+    return user ? hasPermission(user, permission) : false;
+  };
+
+  const userHasRole = (role: UserRole): boolean => {
+    return user ? hasRole(user, role) : false;
+  };
+
+  // Display helpers
+  const displayName = user ? getUserDisplayName(user) : '';
+  const initials = user ? getUserInitials(user) : '';
+
+  const contextValue: SessionContextType = {
+    // Authentication state
+    session,
+    user,
+    
+    // Loading states
+    isLoading,
+    isSigningOut,
+    
+    // Authentication methods
+    signOut,
+    signIn,
+    
+    // Permission helpers
+    hasPermission: userHasPermission,
+    hasRole: userHasRole,
+    
+    // Display helpers
+    displayName,
+    initials,
   };
 
   return (
-    <SessionContext.Provider value={{ session, user, profile, isLoading, signOut, updateProfile }}>
+    <SessionContext.Provider value={contextValue}>
+      {emergencyMode && (
+        <div className="bg-amber-100 border-b border-amber-200 p-2 text-center">
+          <p className="text-sm text-amber-800">
+            ⚠️ Modo de emergencia activo - Algunas funciones pueden estar limitadas. 
+            <button 
+              onClick={() => window.location.reload()} 
+              className="underline ml-1 hover:no-underline"
+            >
+              Recargar para restaurar funcionalidad completa
+            </button>
+          </p>
+        </div>
+      )}
       {children}
     </SessionContext.Provider>
   );
 };
 
-export const useSession = () => {
-  const context = useContext(SessionContext);
-  if (context === undefined) {
-    console.error("useSession must be used within a SessionContextProvider");
-    
-    // Provide emergency fallback instead of throwing
-    return {
-      session: null,
-      user: null,
-      profile: null,
-      isLoading: false,
-      signOut: async () => {
-        console.warn('Emergency signOut called - redirecting to login');
-        window.location.href = '/login';
-      },
-      updateProfile: async () => {
-        console.warn('Emergency updateProfile called - no action taken');
-      }
-    };
-  }
-  
-  // Additional safety check to prevent undefined session access
-  if (context.session === undefined && !context.isLoading) {
-    console.warn('Session is undefined but not loading - this might indicate a race condition');
-  }
-  
-  // Emergency null safety
-  const safeContext = {
-    session: context.session || null,
-    user: context.user || null,
-    profile: context.profile || null,
-    isLoading: context.isLoading || false,
-    signOut: context.signOut || (() => Promise.resolve()),
-    updateProfile: context.updateProfile || (() => Promise.resolve())
-  };
-  
-  return safeContext;
-};
+// useSession hook moved to @/hooks/useSession to fix Fast Refresh warnings

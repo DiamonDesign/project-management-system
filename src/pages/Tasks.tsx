@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { Navigate } from "react-router-dom";
 import { useProjectContext, Task } from "@/context/ProjectContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,14 @@ import { TaskCard } from "@/components/TaskCard";
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GanttChart } from "@/components/GanttChart";
 import { showSuccess, showError } from "@/utils/toast";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { AddTaskDialog } from "@/components/AddTaskDialog";
 
 const Tasks = () => {
   const { session, isLoading: isLoadingSession } = useSession();
   const { projects, isLoadingProjects, updateProject, updateTaskStatus, updateTaskDailyStatus, deleteTaskFromProject, updateTask } = useProjectContext();
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   if (isLoadingSession || isLoadingProjects) {
     return (
@@ -117,7 +121,21 @@ const Tasks = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Gestión de Tareas</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Gestión de Tareas</h1>
+        <Button 
+          onClick={() => setIsTaskDialogOpen(true)}
+          className="h-10 relative flex items-center justify-center pl-9 pr-4 whitespace-nowrap text-sm font-medium"
+        >
+          <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span className="text-sm font-medium">Añadir Tarea</span>
+        </Button>
+      </div>
+      
+      <AddTaskDialog
+        open={isTaskDialogOpen}
+        onOpenChange={setIsTaskDialogOpen}
+      />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 h-[calc(100vh-350px)]">

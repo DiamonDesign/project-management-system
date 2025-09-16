@@ -1,12 +1,19 @@
 import React, { useState } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { SessionGuard } from "@/components/SessionGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
+import { useOptimizedProjectData, useTaskProjectMapping } from "@/hooks/useOptimizedProjectData";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { PullToRefreshIndicator } from "@/components/PullToRefresh";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PWAPrompt } from "@/components/PWAPrompt";
+import { CompactCard } from "@/components/CompactCard";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ContentLoading, ProgressBar, Spinner } from "@/components/ui/loading";
 import { format, isToday, isTomorrow, isYesterday, addDays } from "date-fns";
@@ -36,8 +43,39 @@ const Dashboard = () => {
   const { session } = useSession(); // No need to check loading as SessionGuard handles it
   const { projects, isLoadingProjects } = useProjectContext();
   const { clients, isLoadingClients } = useClientContext();
+  
+  // Use optimized data hook for better performance
+  const {
+    projects: optimizedProjects,
+    allTasks: optimizedTasks,
+    isLoading: isLoadingOptimized,
+    getProjectById
+  } = useOptimizedProjectData();
+  
+  // Efficient task-project mapping
+  const getTaskProject = useTaskProjectMapping(optimizedTasks);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  // Pull to refresh functionality for mobile
+  const {
+    bind,
+    containerRef,
+    isRefreshing,
+    pullDistance,
+    refreshProgress,
+    shouldShowIndicator
+  } = usePullToRefresh({
+    onRefresh: async () => {
+      // Refresh both projects and clients data
+      // The contexts will handle the refresh internally
+      if (window.location.reload) {
+        window.location.reload();
+      }
+    },
+    disabled: !isMobile || isLoadingProjects || isLoadingClients
+  });
 
   // Button handlers
   const handleViewAnalytics = () => {
@@ -102,7 +140,27 @@ const Dashboard = () => {
   return (
     <SessionGuard>
       <div className="min-h-screen bg-gradient-bg">
-        <div className="container mx-auto p-4 space-y-8 animate-fade-in">
+        <div 
+          ref={containerRef}
+          {...(isMobile ? bind() : {})}
+          className="container mx-auto p-4 space-y-8 animate-fade-in relative"
+          style={{
+            transform: isMobile && pullDistance > 0 ? `translateY(${Math.min(pullDistance * 0.5, 40)}px)` : undefined,
+            transition: pullDistance === 0 ? 'transform 0.2s ease-out' : 'none'
+          }}
+        >
+          {/* Pull to Refresh Indicator - Mobile Only */}
+          {isMobile && (
+            <PullToRefreshIndicator
+              isRefreshing={isRefreshing}
+              refreshProgress={refreshProgress}
+              pullDistance={pullDistance}
+              shouldShow={shouldShowIndicator}
+            />
+          )}
+          {/* PWA Integration */}
+          <PWAPrompt className="mb-6" />
+          
           {/* Enhanced Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
@@ -118,16 +176,59 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handleViewAnalytics} className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Analíticas</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleViewAnalytics} 
+              className="h-8 relative flex items-center justify-center pl-8 pr-4 whitespace-nowrap text-sm font-medium"
+            >
+              {/* Icono absoluto a la izquierda */}
+              <BarChart3 className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+              
+              {/* Texto centrado */}
+              <span className="text-sm font-medium">Analíticas</span>
             </Button>
             <AddActionsDropdown />
           </div>
         </div>
 
-        {/* Enhanced KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Enhanced KPI Cards - Responsive Layout */}
+        {isMobile ? (
+          // Mobile: Compact cards in 2 columns  
+          <div className="grid grid-cols-2 gap-3">
+            <CompactCard
+              title="Proyectos"
+              value={safeProjects.length}
+              subtitle={`${activeProjects} activos`}
+              icon={<Briefcase className="h-4 w-4" />}
+              variant="default"
+              onClick={handleViewAnalytics}
+            />
+            <CompactCard
+              title="Clientes"
+              value={safeClients.length}
+              subtitle="Registrados"
+              icon={<Users className="h-4 w-4" />}
+              variant="info"
+            />
+            <CompactCard
+              title="Tareas"
+              value={totalTasks}
+              subtitle={`${pendingTasks.length} pendientes`}
+              icon={<Target className="h-4 w-4" />}
+              variant="warning"
+            />
+            <CompactCard
+              title="Prioridad Alta"
+              value={priorityStats.high}
+              subtitle="Críticas"
+              icon={<Zap className="h-4 w-4" />}
+              variant={priorityStats.high > 0 ? "destructive" : "success"}
+            />
+          </div>
+        ) : (
+          // Desktop: Full KPI cards
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card hover className="group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -256,29 +357,25 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+          </div>
+        )}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Tasks Overview */}
-          <Card hover className="xl:col-span-2">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Tareas Pendientes
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {pendingTasks.length} tareas requieren atención
-                  </p>
-                </div>
+        {/* Main Content Grid - Responsive Layout */}
+        {isMobile ? (
+          // Mobile: Collapsible sections for better space usage
+          <div className="space-y-4">
+            <CollapsibleSection
+              title="Tareas Pendientes"
+              subtitle={`${pendingTasks.length} tareas requieren atención`}
+              icon={<CheckCircle className="h-5 w-5" />}
+              defaultExpanded={pendingTasks.length > 0}
+              compact={true}
+              actionButton={
                 <Button variant="outline" size="sm" onClick={handleViewAllTasks}>
                   Ver todas
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
+              }
+            >
               {!showProjectsContent ? (
                 <div className="py-8">
                   <ContentLoading lines={4} showHeader={false} />
@@ -337,15 +434,97 @@ const Dashboard = () => {
                   </div>
                 </ScrollArea>
               )}
-            </CardContent>
-          </Card>
+            </CollapsibleSection>
+          </div>
+        ) : (
+          // Desktop: Original layout  
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Tasks Overview */}
+            <Card hover className="xl:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Tareas Pendientes
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {pendingTasks.length} tareas requieren atención
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleViewAllTasks}>
+                    Ver todas
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!showProjectsContent ? (
+                  <div className="py-8">
+                    <ContentLoading lines={4} showHeader={false} />
+                  </div>
+                ) : pendingTasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3 opacity-50" />
+                    <p className="text-muted-foreground">¡Excelente trabajo!</p>
+                    <p className="text-sm text-muted-foreground">No hay tareas pendientes</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-64 pr-4">
+                    <div className="space-y-2">
+                      {pendingTasks.slice(0, 8).map((task, index) => {
+                        const project = safeProjects.find(p => p.tasks.some(t => t.id === task.id));
+                        const isOverdue = task.end_date && new Date(task.end_date) < new Date();
+                        
+                        return (
+                          <div key={task.id + index} className={cn(
+                            "flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer group",
+                            isOverdue && "border-destructive/30 bg-destructive/5"
+                          )}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  task.priority === 'high' && "bg-destructive",
+                                  task.priority === 'medium' && "bg-warning", 
+                                  task.priority === 'low' && "bg-success",
+                                  !task.priority && "bg-muted"
+                                )} />
+                                <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                                  {task.title}
+                                </p>
+                              </div>
+                              {project && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {project.name}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isOverdue && (
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                              )}
+                              <Badge 
+                                variant={task.status === 'not-started' ? 'secondary' : 'outline'}
+                                className="text-xs"
+                              >
+                                {task.status === 'not-started' ? 'Sin empezar' : 'En progreso'}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
           
           {/* Calendar Section */}
           <Card hover className="xl:col-span-1">
             <CardHeader compact>
               <CardTitle className="text-lg">Calendario</CardTitle>
             </CardHeader>
-            <CardContent compact className="px-3">
+            <CardContent className="p-3">
               <Calendar
                 mode="single"
                 selected={date}
@@ -353,8 +532,19 @@ const Dashboard = () => {
                 className="rounded-md w-full"
                 locale={es}
                 classNames={{
+                  table: "w-full border-collapse",
+                  head_row: "flex",
+                  head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] flex-1 flex items-center justify-center",
+                  row: "flex w-full mt-2",
+                  cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 flex-1 flex items-center justify-center h-8",
+                  day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 rounded-md hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                  day_range_end: "day-range-end",
                   day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                  day_today: "bg-accent text-accent-foreground font-bold"
+                  day_today: "bg-accent text-accent-foreground font-bold",
+                  day_outside: "text-muted-foreground opacity-50",
+                  day_disabled: "text-muted-foreground opacity-50",
+                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                  day_hidden: "invisible",
                 }}
               />
             </CardContent>
@@ -405,7 +595,8 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
-        </div>
+          </div>
+        )}
 
         {/* Upcoming Deadlines */}
         {upcomingDueDates.length > 0 && (

@@ -18,7 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { showError } from "@/utils/toast";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 
 const ClientDetail = () => {
   const { id } = useParams<{ id: string }>();

@@ -225,6 +225,29 @@
   }
 }
 
+/* React Beautiful DND Fixes */
+@layer base {
+  /* Prevent transform conflicts with React Beautiful DND */
+  [data-rbd-draggable-context-id] {
+    transform-origin: top left !important;
+  }
+
+  /* Ensure dragging elements don't get affected by global animations */
+  [data-rbd-draggable-id][style*="transform"] {
+    transition: none !important;
+  }
+
+  /* Fix for drag ghost positioning */
+  [data-rbd-drag-handle-context-id] {
+    contain: layout style !important;
+  }
+
+  /* Prevent scroll interference during drag */
+  [data-rbd-droppable-context-id] {
+    contain: layout !important;
+  }
+}
+
 /* Utility Classes */
 @layer utilities {
   /* Glass morphism utilities */

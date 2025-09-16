@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useSession } from '@/context/SessionContext';
+import { useSession } from '@/hooks/useSession';
 import { ContentLoading } from '@/components/ui/loading';
 
 interface SessionGuardProps {
@@ -18,8 +18,10 @@ export const SessionGuard: React.FC<SessionGuardProps> = ({
   redirectTo = '/login',
   requireAuth = true 
 }) => {
+  // Always call hooks unconditionally at the top level
+  const { session, isLoading } = useSession();
+
   try {
-    const { session, isLoading } = useSession();
 
     // Show loading state while session is being determined
     if (isLoading) {

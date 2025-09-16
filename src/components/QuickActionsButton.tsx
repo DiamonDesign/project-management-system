@@ -22,7 +22,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AddProjectDialog } from "@/components/AddProjectDialog";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
-import { AddClientDialog } from "@/components/AddClientDialog";
 import { useProjectContext } from "@/context/ProjectContext";
 
 export const QuickActionsButton = () => {
@@ -30,7 +29,6 @@ export const QuickActionsButton = () => {
   const { addProject } = useProjectContext();
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
 
   const quickActions = [
     {
@@ -44,12 +42,6 @@ export const QuickActionsButton = () => {
       icon: CheckSquare,
       action: () => setIsTaskDialogOpen(true),
       shortcut: "⌘+T"
-    },
-    {
-      label: "Nuevo Cliente",
-      icon: Users,
-      action: () => setIsClientDialogOpen(true),
-      shortcut: "⌘+C"
     },
     {
       separator: true
@@ -80,15 +72,16 @@ export const QuickActionsButton = () => {
         <DropdownMenuTrigger asChild>
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-sm font-medium hover:bg-sidebar-accent hover:translate-x-1 transition-all duration-200 group px-3 py-2.5 gap-3"
+            className="w-full h-10 relative flex items-center justify-between pl-11 pr-8 whitespace-nowrap text-sm font-medium hover:bg-sidebar-accent hover:translate-x-1 transition-all duration-200 group"
           >
-            <div className="flex items-center justify-center w-4 h-4 shrink-0">
-              <Zap className="h-4 w-4" />
-            </div>
-            <span className="flex-1 text-left">Acciones rápidas</span>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <Plus className="h-3 w-3" />
-            </div>
+            {/* Icono absoluto a la izquierda */}
+            <Zap className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+            
+            {/* Texto alineado a la izquierda */}
+            <span className="text-sm font-medium text-left">Acciones rápidas</span>
+            
+            {/* Icono Plus absoluto a la derecha */}
+            <Plus className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           </Button>
         </DropdownMenuTrigger>
         
@@ -138,10 +131,6 @@ export const QuickActionsButton = () => {
       <AddTaskDialog
         open={isTaskDialogOpen}
         onOpenChange={setIsTaskDialogOpen}
-      />
-      <AddClientDialog
-        open={isClientDialogOpen}
-        onOpenChange={setIsClientDialogOpen}
       />
     </>
   );

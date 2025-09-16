@@ -100,6 +100,30 @@ export const PageLoading = ({
   showSpinner = true, 
   className 
 }: PageLoadingProps) => {
+  const [showEmergencyOptions, setShowEmergencyOptions] = React.useState(false);
+  const [countdown, setCountdown] = React.useState(5);
+
+  React.useEffect(() => {
+    // Start countdown after 3 seconds
+    const emergencyTimer = setTimeout(() => {
+      setShowEmergencyOptions(true);
+    }, 3000);
+
+    return () => clearTimeout(emergencyTimer);
+  }, []);
+
+  React.useEffect(() => {
+    if (showEmergencyOptions && countdown > 0) {
+      const countdownTimer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(countdownTimer);
+    } else if (showEmergencyOptions && countdown === 0) {
+      // Auto-redirect to login after countdown
+      window.location.href = '/login';
+    }
+  }, [showEmergencyOptions, countdown]);
+
   return (
     <div className={cn(
       "min-h-screen flex items-center justify-center bg-background/80 backdrop-blur-sm",
@@ -110,6 +134,31 @@ export const PageLoading = ({
         <p className="text-lg text-muted-foreground animate-pulse">
           {message}
         </p>
+        
+        {showEmergencyOptions && (
+          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg text-center max-w-md">
+            <p className="text-amber-800 text-sm mb-3">
+              ⚠️ La aplicación está tardando más de lo esperado en cargar.
+            </p>
+            <p className="text-amber-700 text-xs mb-4">
+              Redirigiendo automáticamente al login en {countdown} segundos...
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-3 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
+              >
+                Recargar página
+              </button>
+              <button 
+                onClick={() => window.location.href = '/login'}
+                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+              >
+                Ir al login
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

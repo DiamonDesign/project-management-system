@@ -1,9 +1,8 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { useFormSubmission } from "@/hooks/useAsyncOperation";
-import { ComponentErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import {
   Dialog,
   DialogContent,
@@ -27,69 +26,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { showSuccess, showError } from "@/utils/toast";
 import { CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { es } from "date-fns/locale"; // Importar el locale español
+import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { ProjectFormSchema } from "@/context/ProjectContext";
-import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
+import { ProjectFormSchema } from "@/lib/schemas";
+import { useClientContext } from "@/context/ClientContext";
+import { PROJECT_TYPE_CONFIG } from "@/types";
 
 interface AddProjectDialogProps {
-  onAddProject: (project: z.infer<typeof ProjectFormSchema>) => void;
-  open: boolean; // Add open prop
-  onOpenChange: (open: boolean) => void; // Add onOpenChange prop
+  onAddProject: (project: z.infer<typeof ProjectFormSchema>) => Promise<void>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjectDialogProps) => {
-  const { clients, isLoadingClients } = useClientContext(); // Obtener clientes
+  const { clients, isLoadingClients } = useClientContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
       name: "",
       description: "",
       status: "pending",
+      project_type: undefined,
       dueDate: undefined,
-      client_id: "", // Valor por defecto para el selector de cliente
+      client_id: "",
     },
   });
 
-  const { submit, submitting, error } = useFormSubmission(
-    async (values: z.infer<typeof ProjectFormSchema>) => {
+  const onSubmit = async (values: z.infer<typeof ProjectFormSchema>) => {
+    setIsSubmitting(true);
+    
+    try {
       await onAddProject(values);
+      
       form.reset({
         name: "",
         description: "",
         status: "pending",
+        project_type: undefined,
         dueDate: undefined,
         client_id: "",
       });
       onOpenChange(false);
-    },
-    {
-      onSuccess: () => showSuccess("Proyecto añadido exitosamente."),
-      onError: (err) => {
-        showError(`Error al añadir el proyecto: ${err.message}`);
-        console.error("Error adding project:", err);
-      },
+    } catch (error) {
+      // Error is handled by ProjectContext.addProject() which shows error message
+      console.error("Error adding project:", error);
+      
+      // Don't close dialog on error - let user retry
+      // Don't reset form - preserve user input
+    } finally {
+      setIsSubmitting(false);
     }
-  );
-
-  const onSubmit = (values: z.infer<typeof ProjectFormSchema>) => {
-    submit(values);
   };
 
   return (
-    <ComponentErrorBoundary>
-      <Dialog open={open} onOpenChange={onOpenChange}> {/* Use controlled props */}
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -103,6 +106,7 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="description"
@@ -119,6 +123,39 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="project_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Proyecto (Opcional)</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
+                    defaultValue={field.value || "none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Sin tipo específico</SelectItem>
+                      {Object.entries(PROJECT_TYPE_CONFIG).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center space-x-2">
+                            <span>{config.icon}</span>
+                            <span>{config.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="status"
@@ -144,6 +181,7 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="client_id"
@@ -151,7 +189,7 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 <FormItem>
                   <FormLabel>Cliente (Opcional)</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                    onValueChange={(value) => field.onChange(value === "null" ? "" : value)}
                     defaultValue={field.value || "null"}
                     disabled={isLoadingClients}
                   >
@@ -173,6 +211,7 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="dueDate"
@@ -212,18 +251,17 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
                 </FormItem>
               )}
             />
+            
             <Button 
               type="submit" 
               className="w-full"
-              loading={submitting}
-              disabled={submitting}
+              disabled={isSubmitting}
             >
-              Guardar Proyecto
+              {isSubmitting ? "Guardando..." : "Guardar Proyecto"}
             </Button>
           </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    </ComponentErrorBoundary>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };

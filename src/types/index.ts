@@ -3,6 +3,7 @@
 export type Status = 'pending' | 'in-progress' | 'completed';
 export type Priority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'not-started' | 'in-progress' | 'completed';
+export type ProjectType = 'web' | 'seo' | 'marketing' | 'branding' | 'ecommerce' | 'mobile' | 'task' | 'maintenance' | 'other';
 
 // Page types for Notion-inspired pages
 export type PageType = 
@@ -83,6 +84,7 @@ export interface Project extends BaseEntity {
   name: string;
   description: string;
   status: Status;
+  project_type?: ProjectType;
   due_date?: string;
   client_id?: string | null;
   notes: Note[]; // Legacy support
@@ -118,6 +120,7 @@ export interface ProjectFormData {
   name: string;
   description: string;
   status: Status;
+  project_type?: ProjectType;
   dueDate?: string | null;
   client_id?: string | null;
 }
@@ -261,6 +264,37 @@ export interface CustomEvent<T = unknown> {
   timestamp: number;
 }
 
+// Browser API extensions
+export interface NavigatorExtended extends Navigator {
+  standalone?: boolean;
+  connection?: {
+    effectiveType: '4g' | '3g' | '2g' | 'slow-2g';
+    rtt: number;
+    downlink: number;
+  };
+}
+
+export interface PerformanceExtended extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
+// Error handling types
+export interface AppError extends Error {
+  code?: string;
+  statusCode?: number;
+  details?: Record<string, unknown>;
+}
+
+export interface DatabaseError extends AppError {
+  constraint?: string;
+  column?: string;
+  table?: string;
+}
+
 // Filter and sort types
 export interface FilterOptions {
   status?: Status[];
@@ -288,6 +322,41 @@ export interface ChartDataPoint {
 export interface TimeSeriesDataPoint {
   date: string;
   value: number;
+}
+
+// Recharts tooltip props
+export interface RechartsTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    color?: string;
+    dataKey?: string;
+    fill?: string;
+    name?: string;
+    payload?: Record<string, unknown>;
+    stroke?: string;
+    strokeDasharray?: string;
+    type?: string;
+    value?: number | string;
+  }>;
+  label?: string | number;
+  coordinate?: {
+    x: number;
+    y: number;
+  };
+}
+
+// Recharts pie chart label props
+export interface RechartsPieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
+  index?: number;
+  name?: string;
+  value?: number;
+  fill?: string;
 }
 
 export interface AnalyticsData {
@@ -507,3 +576,61 @@ export const createTaskId = (id: string): TaskId => id as TaskId;
 export const createClientId = (id: string): ClientId => id as ClientId;
 export const createUserId = (id: string): UserId => id as UserId;
 export const createPageId = (id: string): PageId => id as PageId;
+
+// Project type constants and helpers
+export const PROJECT_TYPE_CONFIG: Record<ProjectType, { name: string; icon: string; description: string; color: string }> = {
+  web: {
+    name: 'Proyecto Web',
+    icon: '🌐',
+    description: 'Desarrollo de sitios web y aplicaciones',
+    color: 'bg-blue-50 border-blue-200 text-blue-800'
+  },
+  seo: {
+    name: 'SEO',
+    icon: '🔍',
+    description: 'Optimización para motores de búsqueda',
+    color: 'bg-green-50 border-green-200 text-green-800'
+  },
+  marketing: {
+    name: 'Marketing',
+    icon: '📢',
+    description: 'Campañas de marketing digital',
+    color: 'bg-purple-50 border-purple-200 text-purple-800'
+  },
+  branding: {
+    name: 'Branding',
+    icon: '🎨',
+    description: 'Diseño de identidad y branding',
+    color: 'bg-pink-50 border-pink-200 text-pink-800'
+  },
+  ecommerce: {
+    name: 'E-commerce',
+    icon: '🛒',
+    description: 'Tiendas online y comercio electrónico',
+    color: 'bg-orange-50 border-orange-200 text-orange-800'
+  },
+  mobile: {
+    name: 'App Móvil',
+    icon: '📱',
+    description: 'Desarrollo de aplicaciones móviles',
+    color: 'bg-indigo-50 border-indigo-200 text-indigo-800'
+  },
+  task: {
+    name: 'Tarea Suelta',
+    icon: '⚡',
+    description: 'Tareas independientes y trabajos menores',
+    color: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+  },
+  maintenance: {
+    name: 'Mantenimiento',
+    icon: '🔧',
+    description: 'Mantenimiento y actualizaciones',
+    color: 'bg-gray-50 border-gray-200 text-gray-800'
+  },
+  other: {
+    name: 'Otro',
+    icon: '📋',
+    description: 'Otros tipos de proyectos',
+    color: 'bg-slate-50 border-slate-200 text-slate-800'
+  }
+};

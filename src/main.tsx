@@ -2,12 +2,19 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./globals.css";
 import { BrowserRouter } from "react-router-dom"; // Import BrowserRouter
+import type { Session } from '@supabase/supabase-js';
+
+interface EmergencyFallback {
+  errorCount: number;
+  lastError?: Error;
+  sessionBackup?: Session | null;
+}
 
 // Emergency session and error protection
 declare global {
   interface Window {
-    session?: any;
-    __emergencyFallback?: any;
+    session?: Session | null;
+    __emergencyFallback?: EmergencyFallback;
   }
 }
 

@@ -2,109 +2,38 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dyad-generated-app</title>
-    <!-- Emergency Error Protection -->
-    <script>
-      // Global session variable protection to prevent ReferenceError
-      window.session = window.session || null;
-      
-      // Enhanced global error handler for external scripts
-      window.onerror = function(message, source, lineno, colno, error) {
-        const messageStr = String(message || '');
-        const sourceStr = String(source || '');
-        
-        console.warn('External script error caught:', {
-          message: messageStr,
-          source: sourceStr,
-          line: lineno,
-          column: colno,
-          error: error
-        });
-        
-        // Suppress specific external script errors
-        const suppressedPatterns = [
-          'share-modal',
-          'Cannot read properties of null',
-          'runtime.lastError',
-          'The message port closed',
-          'addEventListener',
-          'Extension context invalidated',
-          'session is not defined',
-          'chrome-extension://'
-        ];
-        
-        const shouldSuppress = suppressedPatterns.some(pattern => 
-          messageStr.includes(pattern) || sourceStr.includes(pattern)
-        );
-        
-        if (shouldSuppress) {
-          console.warn('External script error suppressed:', {
-            message: messageStr,
-            source: sourceStr
-          });
-          return true; // Suppress the error
-        }
-        
-        return false; // Allow other errors to be handled normally
-      };
-      
-      // Unhandled promise rejection handler
-      window.addEventListener('unhandledrejection', function(event) {
-        console.warn('Unhandled promise rejection caught:', event.reason);
-        // Don't prevent default - let React handle it
-      });
-      
-      // DOM safety wrapper for addEventListener
-      (function() {
-        const originalAddEventListener = EventTarget.prototype.addEventListener;
-        EventTarget.prototype.addEventListener = function(type, listener, options) {
-          try {
-            if (this === null || this === undefined) {
-              console.warn('Attempted to add event listener to null/undefined element');
-              return;
-            }
-            return originalAddEventListener.call(this, type, listener, options);
-          } catch (error) {
-            console.warn('addEventListener error caught and suppressed:', error);
-          }
-        };
-      })();
-      
-      // Enhanced browser extension error suppression
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        // Suppress Chrome extension runtime.lastError
-        const originalOnMessage = chrome.runtime.onMessage;
-        chrome.runtime.onMessage = chrome.runtime.onMessage || (() => {});
-        
-        // Override chrome.runtime.sendMessage to catch errors
-        const originalSendMessage = chrome.runtime.sendMessage;
-        if (originalSendMessage) {
-          chrome.runtime.sendMessage = function(...args) {
-            try {
-              return originalSendMessage.apply(this, args);
-            } catch (error) {
-              console.warn('Chrome extension sendMessage error suppressed:', error);
-            }
-          };
-        }
-        
-        // Suppress runtime.lastError
-        Object.defineProperty(chrome.runtime, 'lastError', {
-          get: function() {
-            return null; // Always return null to suppress errors
-          },
-          configurable: true
-        });
-      }
-      
-      // Emergency fallback for missing globals
-      window.__emergencyFallback = {
-        session: null,
-        user: null,
-        isAuthenticated: false
-      };
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>FreelanceFlow - Gestión de Proyectos</title>
+    <meta name="description" content="Aplicación de gestión de proyectos para freelancers y consultores con funcionalidades offline" />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="background-color" content="#ffffff" />
+    <meta name="display" content="standalone" />
+    <meta name="orientation" content="portrait-primary" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FreelanceFlow" />
+    <link rel="apple-touch-icon" href="/favicon.ico" />
+    
+    <!-- Microsoft PWA Meta Tags -->
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Security Meta Tags -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- Development CSP - Allow inline scripts for Vite HMR -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws://localhost:* http://localhost:* https://api.supabase.io wss://realtime.supabase.io https://*.supabase.co wss://*.supabase.co; media-src 'none'; object-src 'none'; child-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';" />
+    
+    <!-- Emergency Error Protection - External Script -->
+    <script src="/error-handler.js"></script>
   </head>
 
   <body>

@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -20,11 +19,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useClientContext, ClientFormSchema } from "@/context/ClientContext";
+import { useClientContext } from "@/context/ClientContext";
+import { ClientFormSchema } from "@/lib/schemas";
 import { showSuccess, showError } from "@/utils/toast";
 
-export const AddClientDialog = () => {
-  const [open, setOpen] = useState(false);
+interface AddClientDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const AddClientDialog = ({ open, onOpenChange }: AddClientDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addClient } = useClientContext();
   const form = useForm<z.infer<typeof ClientFormSchema>>({
@@ -51,7 +55,7 @@ export const AddClientDialog = () => {
         address: "",
         cif: "",
       });
-      setOpen(false);
+      onOpenChange(false);
       showSuccess("Cliente añadido exitosamente.");
     } catch (error) {
       console.error("Error adding client:", error);
@@ -62,10 +66,7 @@ export const AddClientDialog = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Añadir Nuevo Cliente</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Añadir Nuevo Cliente</DialogTitle>

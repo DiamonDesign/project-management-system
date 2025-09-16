@@ -3,11 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Trash2, 
-  Pencil, 
-  Save, 
-  X, 
+import {
+  Trash2,
+  Pencil,
+  Save,
+  X,
   CalendarIcon,
   Clock,
   AlertCircle,
@@ -15,7 +15,6 @@ import {
   PlayCircle,
   Pause,
   Flag,
-  GripVertical,
   MoreHorizontal
 } from "lucide-react";
 import { Task } from "@/context/ProjectContext";
@@ -50,15 +49,29 @@ interface TaskCardProps {
   draggableProps?: DraggableProvidedDraggableProps;
   dragHandleProps?: DraggableProvidedDragHandleProps;
   innerRef?: (element: HTMLElement | null) => void;
+  isDragging?: boolean;
 }
 
-export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, draggableProps, dragHandleProps, innerRef }: TaskCardProps) => {
+export const TaskCard = ({
+  task,
+  projectId,
+  onEdit,
+  onDelete,
+  onUpdateStatus,
+  draggableProps,
+  dragHandleProps,
+  innerRef,
+  isDragging: isDraggingProp
+}: TaskCardProps) => {
   const [editing, setEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task.title);
   const [editedDescription, setEditedDescription] = useState(task.description || "");
   const [editedStartDate, setEditedStartDate] = useState<Date | undefined>(task.start_date ? new Date(task.start_date) : undefined);
   const [editedEndDate, setEditedEndDate] = useState<Date | undefined>(task.end_date ? new Date(task.end_date) : undefined);
   const [editedPriority, setEditedPriority] = useState<Task['priority']>(task.priority || 'medium');
+  const [isDraggingLocal, setIsDraggingLocal] = useState(false);
+
+  const isDragging = isDraggingProp || isDraggingLocal;
 
   const handleSave = () => {
     if (editedTitle.trim()) {
@@ -94,116 +107,220 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
 
   const getPriorityConfig = (p?: Task['priority']) => {
     switch (p) {
-      case 'high': 
-        return { 
-          color: 'text-destructive', 
-          bg: 'bg-destructive/10 border-destructive/30',
+      case 'high':
+        return {
+          color: 'text-destructive',
+          bg: 'bg-destructive/15 border-destructive/50',
           icon: AlertCircle,
-          label: 'Alta'
+          label: 'Alta',
+          dotClass: 'bg-destructive border-destructive shadow-destructive/30'
         };
-      case 'low': 
-        return { 
-          color: 'text-success', 
-          bg: 'bg-success/10 border-success/30',
+      case 'low':
+        return {
+          color: 'text-success',
+          bg: 'bg-success/15 border-success/50',
           icon: CheckCircle2,
-          label: 'Baja'
+          label: 'Baja',
+          dotClass: 'bg-success border-success shadow-success/30'
         };
       case 'medium':
       default:
-        return { 
-          color: 'text-warning', 
-          bg: 'bg-warning/10 border-warning/30',
+        return {
+          color: 'text-warning',
+          bg: 'bg-warning/15 border-warning/50',
           icon: Flag,
-          label: 'Media'
+          label: 'Media',
+          dotClass: 'bg-warning border-warning shadow-warning/30'
         };
     }
   };
-  
+
   const getStatusConfig = (status: Task['status']) => {
     switch (status) {
       case 'completed':
-        return { 
-          color: 'text-success', 
-          bg: 'bg-success/10 border-success/30',
+        return {
+          color: 'text-success',
+          bg: 'bg-success/15 border-success/50',
           icon: CheckCircle2,
-          label: 'Completada'
+          label: 'Completada',
+          badgeClass: 'bg-success/20 text-success border-success/60'
         };
       case 'in-progress':
-        return { 
-          color: 'text-info', 
-          bg: 'bg-info/10 border-info/30',
+        return {
+          color: 'text-info',
+          bg: 'bg-info/15 border-info/50',
           icon: PlayCircle,
-          label: 'En progreso'
+          label: 'En progreso',
+          badgeClass: 'bg-info/20 text-info border-info/60'
         };
       case 'not-started':
       default:
-        return { 
-          color: 'text-muted-foreground', 
-          bg: 'bg-muted/20 border-muted/30',
+        return {
+          color: 'text-muted-foreground',
+          bg: 'bg-muted/30 border-muted/50',
           icon: Pause,
-          label: 'Sin empezar'
+          label: 'Sin empezar',
+          badgeClass: 'bg-muted/30 text-muted-foreground border-muted/60'
         };
     }
   };
-  
+
   const priorityConfig = getPriorityConfig(task.priority);
   const statusConfig = getStatusConfig(task.status);
-  const PriorityIcon = priorityConfig.icon;
   const StatusIcon = statusConfig.icon;
-  
+
   const isOverdue = task.end_date && isBefore(new Date(task.end_date), new Date()) && task.status !== 'completed';
   const isDueSoon = task.end_date && isAfter(new Date(task.end_date), new Date()) && isBefore(new Date(task.end_date), addDays(new Date(), 2));
 
   return (
     <Card
-      className={cn(
-        "mb-3 group relative transition-all duration-200 hover:shadow-card-hover animate-fade-in",
-        isOverdue && "ring-2 ring-destructive/30 border-destructive/30 bg-destructive/5",
-        isDueSoon && "ring-1 ring-warning/30 border-warning/30 bg-warning/5",
-        task.status === 'completed' && "opacity-75 bg-success/5"
-      )}
       ref={innerRef}
+      className={cn(
+        "group relative bg-card shadow-sm rounded-lg overflow-hidden transition-all duration-200",
+        "border cursor-grab active:cursor-grabbing",
+        !isDragging && "hover:shadow-lg hover:border-primary/30",
+        isDragging && "shadow-xl border-primary ring-2 ring-primary/30 opacity-75",
+        task.priority === 'high' && "border-l-4 border-l-red-500",
+        task.priority === 'medium' && "border-l-4 border-l-yellow-500",
+        task.priority === 'low' && "border-l-4 border-l-green-500",
+        !isDragging && isOverdue && "ring-1 ring-red-200 bg-red-50/50 dark:bg-red-950/20",
+        !isDragging && isDueSoon && "ring-1 ring-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/20",
+        !isDragging && task.status === 'completed' && "opacity-75 bg-green-50/50 dark:bg-green-950/20"
+      )}
       {...draggableProps}
+      {...dragHandleProps}
+      style={draggableProps?.style}
     >
       <CardContent className="p-4 space-y-3">
-        {/* Drag Handle */}
-        <div className="flex items-center gap-2">
-          <div 
-            {...dragHandleProps} 
-            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex items-start gap-2">
+              <div
+                className={cn(
+                  "w-2 h-2 rounded-full flex-shrink-0 mt-2",
+                  task.priority === 'high' && "bg-red-500",
+                  task.priority === 'medium' && "bg-yellow-500",
+                  task.priority === 'low' && "bg-green-500",
+                  !task.priority && "bg-gray-300"
+                )}
+                title={`Prioridad ${priorityConfig.label.toLowerCase()}`}
+              />
+
+              <h3
+                className={cn(
+                  "font-semibold text-base leading-snug flex-1",
+                  task.status === "completed" && "line-through text-muted-foreground",
+                  task.status !== "completed" && "text-foreground"
+                )}
+              >
+                {task.title}
+              </h3>
+            </div>
+
+            {task.description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                {task.description}
+              </p>
+            )}
+
+            {task.end_date && (
+              <div className={cn(
+                "inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full",
+                isOverdue && "text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30",
+                isDueSoon && "text-yellow-700 bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30",
+                !isOverdue && !isDueSoon && "text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800"
+              )}>
+                {isOverdue ? (
+                  <>
+                    <AlertCircle className="h-3 w-3" />
+                    <span className="font-medium">Vencida</span>
+                  </>
+                ) : isDueSoon ? (
+                  <>
+                    <Clock className="h-3 w-3" />
+                    <span className="font-medium">Próxima</span>
+                  </>
+                ) : (
+                  <>
+                    <CalendarIcon className="h-3 w-3" />
+                    <span>{format(new Date(task.end_date), "dd MMM", { locale: es })}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Disable interactions during drag to prevent positioning issues */}
+            <Select
+              onValueChange={handleStatusChange}
+              value={task.status}
+              disabled={isDragging}
+            >
+              <SelectTrigger className={cn(
+                "h-9 text-sm",
+                isDragging && "pointer-events-none"
+              )}>
+                <div className="flex items-center gap-2">
+                  <StatusIcon className="h-4 w-4" />
+                  <SelectValue />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="not-started">
+                  <div className="flex items-center gap-2">
+                    <Pause className="h-4 w-4" />
+                    <span>Sin empezar</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="in-progress">
+                  <div className="flex items-center gap-2">
+                    <PlayCircle className="h-4 w-4" />
+                    <span>En progreso</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="completed">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Completada</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          {/* Priority Indicator */}
-          <div className={cn(
-            "w-3 h-3 rounded-full border-2",
-            task.priority === 'high' && "bg-destructive border-destructive",
-            task.priority === 'medium' && "bg-warning border-warning",
-            task.priority === 'low' && "bg-success border-success",
-            !task.priority && "bg-muted border-muted"
-          )} />
-          
-          {/* Task Actions Menu */}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon-sm" 
-                className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-8 w-8 p-0 flex-shrink-0",
+                  !isDragging && "opacity-0 group-hover:opacity-100 transition-opacity",
+                  isDragging && "pointer-events-none opacity-0"
+                )}
+                onClick={(e) => e.stopPropagation()}
+                disabled={isDragging}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditing(true)}>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditing(true);
+                }}
+                className="cursor-pointer"
+              >
                 <Pencil className="h-4 w-4 mr-2" />
-                Editar
+                Editar tarea
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => onDelete(projectId, task.id)}
-                className="text-destructive focus:text-destructive"
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(projectId, task.id);
+                }}
+                className="cursor-pointer text-red-600 focus:text-red-600"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Eliminar
@@ -211,222 +328,66 @@ export const TaskCard = ({ task, projectId, onEdit, onDelete, onUpdateStatus, dr
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {editing ? (
-          <div className="space-y-4">
+
+        {editing && (
+          <div className="space-y-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border">
             <Input
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
-              className="font-medium text-base"
+              className="font-medium h-10"
               placeholder="Título de la tarea"
               autoFocus
             />
             <textarea
               value={editedDescription}
               onChange={(e) => setEditedDescription(e.target.value)}
-              className="w-full border rounded-lg p-3 text-sm resize-y h-24 bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
-              placeholder="Descripción detallada (opcional)"
+              className="w-full border rounded-md p-3 text-sm resize-y h-20 bg-background"
+              placeholder="Descripción (opcional)"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !editedStartDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedStartDate ? format(editedStartDate, "PPP", { locale: es }) : "Fecha inicio"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={editedStartDate}
-                    onSelect={setEditedStartDate}
-                    initialFocus
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !editedEndDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedEndDate ? format(editedEndDate, "PPP", { locale: es }) : "Fecha límite"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={editedEndDate}
-                    onSelect={setEditedEndDate}
-                    initialFocus
-                    locale={es}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Select onValueChange={(v) => setEditedPriority(v as Task['priority'])} defaultValue={editedPriority}>
-                <SelectTrigger className="w-[160px]">
+            <div className="flex items-center justify-between gap-3">
+              <Select onValueChange={(v) => setEditedPriority(v as Task['priority'])} value={editedPriority}>
+                <SelectTrigger className="w-36 h-9">
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-success" />
-                      Baja prioridad
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Baja</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="medium">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-warning" />
-                      Media prioridad
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span>Media</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="high">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-destructive" />
-                      Alta prioridad
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span>Alta</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
-              
-              <div className="flex items-center gap-1 ml-auto">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSave}
-                  className="bg-success/10 hover:bg-success/20 border-success/30 text-success"
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  Guardar
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleCancel}
-                  className="hover:bg-muted/50"
+                  className="h-9 px-4"
                 >
-                  <X className="h-4 w-4 mr-1" />
+                  <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* Task Title and Priority */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <h3 className={cn(
-                  "font-medium text-base leading-tight",
-                  task.status === "completed" && "line-through text-muted-foreground"
-                )}>
-                  {task.title}
-                </h3>
-                {task.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-              
-              {/* Priority Badge */}
-              <Badge 
-                variant="outline" 
-                className={cn(
-                  "flex items-center gap-1 text-xs font-medium border-2",
-                  priorityConfig.bg,
-                  priorityConfig.color
-                )}
-              >
-                <PriorityIcon className="h-3 w-3" />
-                {priorityConfig.label}
-              </Badge>
-            </div>
-            
-            {/* Dates Section */}
-            {(task.start_date || task.end_date) && (
-              <div className="flex items-center gap-4 text-sm">
-                {task.start_date && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <PlayCircle className="h-3 w-3" />
-                    <span>Inicio: {format(new Date(task.start_date), "PPP", { locale: es })}</span>
-                  </div>
-                )}
-                {task.end_date && (
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    isOverdue && "text-destructive font-medium",
-                    isDueSoon && "text-warning font-medium",
-                    !isOverdue && !isDueSoon && "text-muted-foreground"
-                  )}>
-                    {isOverdue && <AlertCircle className="h-3 w-3" />}
-                    {isDueSoon && <Clock className="h-3 w-3" />}
-                    {!isOverdue && !isDueSoon && <CalendarIcon className="h-3 w-3" />}
-                    <span>Límite: {format(new Date(task.end_date), "PPP", { locale: es })}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Status and Actions Row */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <Select onValueChange={handleStatusChange} value={task.status}>
-                <SelectTrigger className="w-[140px] h-8">
-                  <StatusIcon className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not-started">
-                    <div className="flex items-center gap-2">
-                      <Pause className="h-4 w-4 text-muted-foreground" />
-                      Sin empezar
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="in-progress">
-                    <div className="flex items-center gap-2">
-                      <PlayCircle className="h-4 w-4 text-info" />
-                      En progreso
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-success" />
-                      Completada
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon-sm" 
-                  onClick={() => setEditing(true)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:bg-primary/10"
+                <Button
+                  onClick={handleSave}
+                  size="sm"
+                  className="h-9 px-4 bg-green-600 hover:bg-green-700"
                 >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon-sm" 
-                  onClick={() => onDelete(projectId, task.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar
                 </Button>
               </div>
             </div>

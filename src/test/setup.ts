@@ -86,7 +86,7 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock DOMPurify with actual sanitization behavior for tests
 vi.mock('dompurify', () => ({
   default: {
-    sanitize: vi.fn((input: string, config?: any) => {
+    sanitize: vi.fn((input: string, config?: { ALLOWED_TAGS?: string[]; ALLOWED_ATTR?: string[] }) => {
       if (!input || typeof input !== 'string') return '';
       
       // Simple mock sanitization - remove script tags and dangerous attributes
@@ -134,7 +134,7 @@ vi.mock('validator', () => ({
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(email);
     }),
-    isURL: vi.fn((url: string, options: any) => {
+    isURL: vi.fn((url: string, options: { protocols: string[] }) => {
       try {
         const parsed = new URL(url);
         return options.protocols.includes(parsed.protocol.slice(0, -1));

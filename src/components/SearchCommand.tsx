@@ -21,7 +21,8 @@ import {
   Filter,
   X,
 } from 'lucide-react';
-import { useSearch, SearchResult } from '@/hooks/useSearch';
+import { useSearch } from '@/hooks/useSearch';
+import { SearchResult } from '@/types/search';
 import { cn } from '@/lib/utils';
 
 interface SearchCommandProps {

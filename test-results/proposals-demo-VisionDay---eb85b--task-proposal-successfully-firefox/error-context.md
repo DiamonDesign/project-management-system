@@ -1,0 +1,196 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list [ref=e4]:
+        - status [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]: Propuesta enviada
+            - generic [ref=e8]: Tu propuesta de tarea ha sido enviada al diseñador para su revisión
+          - button [ref=e9] [cursor=pointer]:
+            - img [ref=e10] [cursor=pointer]
+    - region "Notifications alt+T"
+    - generic [ref=e14]:
+      - generic [ref=e16]:
+        - link "Volver a todos los proyectos" [ref=e18] [cursor=pointer]:
+          - /url: /client-portal/techcorp
+          - img [ref=e19] [cursor=pointer]
+          - text: Volver a todos los proyectos
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - generic [ref=e26]: VD
+              - generic [ref=e27]:
+                - heading "Rediseño de Aplicación Móvil" [level=1] [ref=e28]
+                - paragraph [ref=e29]: Rediseño completo de la aplicación móvil con enfoque en UX mejorada
+            - generic [ref=e30]:
+              - generic [ref=e31]: En Progreso
+              - generic [ref=e32]:
+                - img [ref=e33]
+                - generic [ref=e38]: "Entrega: 30 de marzo, 2024"
+              - generic [ref=e39]:
+                - img [ref=e40]
+                - generic [ref=e43]: "Progreso: 65%"
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - generic [ref=e48]: M
+              - generic [ref=e49]:
+                - heading "María González" [level=3] [ref=e50]
+                - paragraph [ref=e51]: Tu Diseñadora UI/UX
+                - paragraph [ref=e52]: maria@visionday.design
+            - generic [ref=e53]:
+              - button "Contactar" [ref=e54] [cursor=pointer]:
+                - generic [ref=e55] [cursor=pointer]:
+                  - img
+                  - text: Contactar
+              - button [ref=e57] [cursor=pointer]:
+                - generic [ref=e58] [cursor=pointer]:
+                  - img
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]: Progreso del Proyecto
+            - generic [ref=e63]: 65%
+          - progressbar [ref=e64]
+      - generic [ref=e67]:
+        - generic [ref=e69]:
+          - heading "Entregables del Proyecto" [level=3] [ref=e71]:
+            - img [ref=e72]
+            - text: Entregables del Proyecto
+          - generic [ref=e76]:
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - heading "User Research & Personas" [level=3] [ref=e82]
+                - generic [ref=e83]: Completado
+              - paragraph [ref=e84]: "Fecha límite: 30 de enero"
+              - generic [ref=e85]:
+                - generic [ref=e86]:
+                  - img [ref=e87]
+                  - generic [ref=e93]: User_Research_Report.pdf
+                  - generic [ref=e94]: 2.4 MB
+                  - generic [ref=e95]:
+                    - button [ref=e96] [cursor=pointer]:
+                      - generic [ref=e97] [cursor=pointer]:
+                        - img
+                    - button [ref=e99] [cursor=pointer]:
+                      - generic [ref=e100] [cursor=pointer]:
+                        - img
+                - generic [ref=e102]:
+                  - img [ref=e103]
+                  - generic [ref=e109]: Personas_Document.pdf
+                  - generic [ref=e110]: 1.8 MB
+                  - generic [ref=e111]:
+                    - button [ref=e112] [cursor=pointer]:
+                      - generic [ref=e113] [cursor=pointer]:
+                        - img
+                    - button [ref=e115] [cursor=pointer]:
+                      - generic [ref=e116] [cursor=pointer]:
+                        - img
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - heading "Wireframes & User Flow" [level=3] [ref=e123]
+                - generic [ref=e124]: Completado
+              - paragraph [ref=e125]: "Fecha límite: 15 de febrero"
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - img [ref=e128]
+                  - generic [ref=e134]: Wireframes_v2.fig
+                  - generic [ref=e135]: 4.2 MB
+                  - generic [ref=e136]:
+                    - button [ref=e137] [cursor=pointer]:
+                      - generic [ref=e138] [cursor=pointer]:
+                        - img
+                    - button [ref=e140] [cursor=pointer]:
+                      - generic [ref=e141] [cursor=pointer]:
+                        - img
+                - generic [ref=e143]:
+                  - img [ref=e144]
+                  - generic [ref=e148]: User_Flow_Diagram.png
+                  - generic [ref=e149]: 890 KB
+                  - generic [ref=e150]:
+                    - button [ref=e151] [cursor=pointer]:
+                      - generic [ref=e152] [cursor=pointer]:
+                        - img
+                    - button [ref=e154] [cursor=pointer]:
+                      - generic [ref=e155] [cursor=pointer]:
+                        - img
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - heading "UI Design & Prototypes" [level=3] [ref=e162]
+                - generic [ref=e163]: En Progreso
+              - paragraph [ref=e164]: "Fecha límite: 1 de marzo"
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - img [ref=e167]
+                  - generic [ref=e173]: UI_Design_System.fig
+                  - generic [ref=e174]: 8.1 MB
+                  - generic [ref=e175]:
+                    - button [ref=e176] [cursor=pointer]:
+                      - generic [ref=e177] [cursor=pointer]:
+                        - img
+                    - button [ref=e179] [cursor=pointer]:
+                      - generic [ref=e180] [cursor=pointer]:
+                        - img
+                - generic [ref=e182]:
+                  - img [ref=e183]
+                  - generic [ref=e189]: Mobile_Prototype.fig
+                  - generic [ref=e190]: 12.3 MB
+                  - generic [ref=e191]:
+                    - button [ref=e192] [cursor=pointer]:
+                      - generic [ref=e193] [cursor=pointer]:
+                        - img
+                    - button [ref=e195] [cursor=pointer]:
+                      - generic [ref=e196] [cursor=pointer]:
+                        - img
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - heading "Final Assets & Handoff" [level=3] [ref=e203]
+                - generic [ref=e204]: Pendiente
+              - paragraph [ref=e205]: "Fecha límite: 30 de marzo"
+        - generic [ref=e206]:
+          - generic [ref=e207]:
+            - heading "Estadísticas" [level=3] [ref=e209]
+            - generic [ref=e210]:
+              - generic [ref=e211]:
+                - generic [ref=e212]: Entregables
+                - generic [ref=e213]: 2/4 Completados
+              - generic [ref=e214]:
+                - generic [ref=e215]: Días restantes
+                - generic [ref=e216]: 23 días
+              - generic [ref=e217]:
+                - generic [ref=e218]: Comentarios
+                - generic [ref=e219]: 8 pendientes
+          - generic [ref=e220]:
+            - heading "Actividad Reciente" [level=3] [ref=e222]
+            - generic [ref=e227]:
+              - generic [ref=e230]:
+                - paragraph [ref=e231]: Uploaded new prototype version
+                - paragraph [ref=e232]: 2 horas ago
+              - generic [ref=e235]:
+                - paragraph [ref=e236]: Comentario añadido en wireframes
+                - paragraph [ref=e237]: 1 día ago
+              - generic [ref=e240]:
+                - paragraph [ref=e241]: UI Design completado
+                - paragraph [ref=e242]: 3 días ago
+          - generic [ref=e243]:
+            - heading "Acciones Rápidas" [level=3] [ref=e245]
+            - generic [ref=e246]:
+              - button "Proponer Nueva Tarea" [active] [ref=e247] [cursor=pointer]:
+                - generic [ref=e248] [cursor=pointer]:
+                  - img
+                  - text: Proponer Nueva Tarea
+              - button "Enviar Comentarios" [ref=e250] [cursor=pointer]:
+                - generic [ref=e251] [cursor=pointer]:
+                  - img
+                  - text: Enviar Comentarios
+              - button "Descargar Todo" [ref=e253] [cursor=pointer]:
+                - generic [ref=e254] [cursor=pointer]:
+                  - img
+                  - text: Descargar Todo
+              - button "Ver en Figma" [ref=e256] [cursor=pointer]:
+                - generic [ref=e257] [cursor=pointer]:
+                  - img
+                  - text: Ver en Figma
+  - status [ref=e259]: Notification Propuesta enviadaTu propuesta de tarea ha sido enviada al diseñador para su revisión
+```

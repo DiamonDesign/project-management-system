@@ -90,130 +90,126 @@ export const PagesSection = ({ projectId }: PagesSectionProps) => {
   const hasPages = totalPages > 0;
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <CardTitle className="flex items-center gap-2">
-              📄 Páginas
-              {totalPages > 0 && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({totalPages})
-                </span>
-              )}
-            </CardTitle>
-          </div>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            size="sm"
-            className="shrink-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva Página
-          </Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Documentación</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Organiza y gestiona toda la información del proyecto
+          </p>
         </div>
-        
-        {/* Search and Filter Bar */}
-        {hasPages && (
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar páginas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <select
-              value={selectedPageType}
-              onChange={(e) => setSelectedPageType(e.target.value as PageType | 'all')}
-              className="px-3 py-2 text-sm border border-input rounded-md bg-background"
-            >
-              <option value="all">Todos los tipos</option>
-              {Object.entries(PAGE_TYPE_CONFIG).map(([type, config]) => (
-                <option key={type} value={type}>
-                  {config.icon} {config.name}
-                </option>
-              ))}
-            </select>
+        <Button
+          onClick={() => setIsAddDialogOpen(true)}
+          className="h-10 relative flex items-center justify-center pl-9 pr-4 whitespace-nowrap text-sm font-medium"
+        >
+          <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span className="text-sm font-medium">Nuevo Documento</span>
+        </Button>
+      </div>
+
+      {/* Search and Filter Bar */}
+      {hasPages && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar documentos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-10"
+            />
           </div>
-        )}
-      </CardHeader>
-      
-      <CardContent>
+          <select
+            value={selectedPageType}
+            onChange={(e) => setSelectedPageType(e.target.value as PageType | 'all')}
+            className="px-3 py-2 h-10 text-sm border border-input rounded-md bg-background min-w-[150px]"
+          >
+            <option value="all">Todos los tipos</option>
+            {Object.entries(PAGE_TYPE_CONFIG).map(([type, config]) => (
+              <option key={type} value={type}>
+                {config.icon} {config.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Content Area */}
+      <div className="min-h-[400px]">
         {!hasPages ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <div className="text-2xl">📄</div>
+          <div className="text-center py-16 border-2 border-dashed border-muted-foreground/25 rounded-lg bg-muted/5">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900 flex items-center justify-center">
+              <div className="text-3xl">📚</div>
             </div>
-            <h3 className="text-lg font-medium mb-2">No hay páginas aún</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Crea tu primera página para organizar la información del proyecto
+            <h3 className="text-xl font-semibold mb-3">Aún no hay documentación</h3>
+            <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
+              Crea tu primer documento para organizar notas, especificaciones, credenciales y más información del proyecto
             </p>
             <Button
               onClick={() => setIsAddDialogOpen(true)}
-              size="sm"
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Crear primera página
+              <Plus className="h-5 w-5 mr-2" />
+              Crear primer documento
             </Button>
           </div>
         ) : filteredPages.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-muted-foreground text-sm">
-              No se encontraron páginas que coincidan con tu búsqueda
+          <div className="text-center py-12 border border-dashed border-muted-foreground/20 rounded-lg">
+            <div className="text-muted-foreground text-sm mb-3">
+              No se encontraron documentos que coincidan con tu búsqueda
             </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedPageType('all');
               }}
-              className="mt-2"
             >
               Limpiar filtros
             </Button>
           </div>
         ) : (
-          <ScrollArea className="h-96 w-full">
-            <div className="space-y-6">
-              {Object.entries(pagesByType).map(([type, pages]) => {
-                if (pages.length === 0) return null;
-                
-                const typeConfig = PAGE_TYPE_CONFIG[type as PageType];
-                
-                return (
-                  <div key={type} className="space-y-3">
-                    {/* Type Header - only show if not filtering by specific type */}
-                    {selectedPageType === 'all' && (
-                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <span>{typeConfig.icon}</span>
+          <div className="space-y-8">
+            {Object.entries(pagesByType).map(([type, pages]) => {
+              if (pages.length === 0) return null;
+
+              const typeConfig = PAGE_TYPE_CONFIG[type as PageType];
+
+              return (
+                <div key={type} className="space-y-4">
+                  {/* Type Header - only show if not filtering by specific type */}
+                  {selectedPageType === 'all' && (
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/40">
+                      <div className="flex items-center gap-2 text-base font-medium text-foreground">
+                        <span className="text-lg">{typeConfig.icon}</span>
                         <span>{typeConfig.name}</span>
-                        <span className="text-xs">({pages.length})</span>
-                        <div className="flex-1 h-px bg-border"></div>
                       </div>
-                    )}
-                    
-                    {/* Pages Grid */}
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {pages.map((page) => (
-                        <PageCard
-                          key={page.id}
-                          page={page}
-                          projectId={projectId}
-                          onEdit={() => handlePageEdit(page)}
-                        />
-                      ))}
+                      <div className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground font-medium">
+                        {pages.length}
+                      </div>
                     </div>
+                  )}
+
+                  {/* Pages Grid */}
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {pages.map((page) => (
+                      <PageCard
+                        key={page.id}
+                        page={page}
+                        projectId={projectId}
+                        onEdit={() => handlePageEdit(page)}
+                      />
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                </div>
+              );
+            })}
+          </div>
         )}
-      </CardContent>
+      </div>
 
       {/* Add Page Dialog */}
       <AddPageDialog
@@ -221,6 +217,6 @@ export const PagesSection = ({ projectId }: PagesSectionProps) => {
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
       />
-    </Card>
+    </div>
   );
 };

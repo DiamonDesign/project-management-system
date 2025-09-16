@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { useSession } from "@/context/SessionContext";
+import { useSession } from "@/hooks/useSession";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { showSuccess, showError } from "@/utils/toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { AppError } from "@/types";
 import { Loader2 } from "lucide-react";
 
 // Schema for profile updates
@@ -104,8 +105,9 @@ const Profile = () => {
 
       showSuccess("Contraseña actualizada exitosamente.");
       passwordForm.reset();
-    } catch (error: any) {
-      showError("Error al actualizar la contraseña: " + error.message);
+    } catch (error: unknown) {
+      const appError = error as AppError;
+      showError("Error al actualizar la contraseña: " + appError.message);
       console.error("Error updating password:", error);
     } finally {
       setIsPasswordSaving(false);

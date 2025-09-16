@@ -1,0 +1,105 @@
+// Emergency Error Protection Script
+// Extracted from inline script to comply with CSP without unsafe-inline
+
+(function() {
+  'use strict';
+
+  // Global session variable protection to prevent ReferenceError
+  window.session = window.session || null;
+
+  // Enhanced global error handler for external scripts
+  window.onerror = function(message, source, lineno, colno, error) {
+    const messageStr = String(message || '');
+    const sourceStr = String(source || '');
+
+    console.warn('External script error caught:', {
+      message: messageStr,
+      source: sourceStr,
+      line: lineno,
+      column: colno,
+      error: error
+    });
+
+    // Suppress specific external script errors
+    const suppressedPatterns = [
+      'share-modal',
+      'Cannot read properties of null',
+      'runtime.lastError',
+      'The message port closed',
+      'addEventListener',
+      'Extension context invalidated',
+      'session is not defined',
+      'chrome-extension://'
+    ];
+
+    const shouldSuppress = suppressedPatterns.some(pattern => 
+      messageStr.includes(pattern) || sourceStr.includes(pattern)
+    );
+
+    if (shouldSuppress) {
+      console.warn('External script error suppressed:', {
+        message: messageStr,
+        source: sourceStr
+      });
+      return true; // Suppress the error
+    }
+
+    return false; // Allow other errors to be handled normally
+  };
+
+  // Unhandled promise rejection handler
+  window.addEventListener('unhandledrejection', function(event) {
+    console.warn('Unhandled promise rejection caught:', event.reason);
+    // Don't prevent default - let React handle it
+  });
+
+  // DOM safety wrapper for addEventListener
+  (function() {
+    const originalAddEventListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(type, listener, options) {
+      try {
+        if (this === null || this === undefined) {
+          console.warn('Attempted to add event listener to null/undefined element');
+          return;
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      } catch (error) {
+        console.warn('addEventListener error caught and suppressed:', error);
+      }
+    };
+  })();
+
+  // Enhanced browser extension error suppression
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    // Suppress Chrome extension runtime.lastError
+    const originalOnMessage = chrome.runtime.onMessage;
+    chrome.runtime.onMessage = chrome.runtime.onMessage || (() => {});
+
+    // Override chrome.runtime.sendMessage to catch errors
+    const originalSendMessage = chrome.runtime.sendMessage;
+    if (originalSendMessage) {
+      chrome.runtime.sendMessage = function(...args) {
+        try {
+          return originalSendMessage.apply(this, args);
+        } catch (error) {
+          console.warn('Chrome extension sendMessage error suppressed:', error);
+        }
+      };
+    }
+
+    // Suppress runtime.lastError
+    Object.defineProperty(chrome.runtime, 'lastError', {
+      get: function() {
+        return null; // Always return null to suppress errors
+      },
+      configurable: true
+    });
+  }
+
+  // Emergency fallback for missing globals
+  window.__emergencyFallback = {
+    session: null,
+    user: null,
+    isAuthenticated: false
+  };
+})();

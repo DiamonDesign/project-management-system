@@ -34,8 +34,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Project, ProjectFormSchema } from "@/context/ProjectContext";
+import { Project } from "@/context/ProjectContext";
+import { ProjectFormSchema } from "@/lib/schemas";
 import { useClientContext } from "@/context/ClientContext"; // Importar useClientContext
+import { PROJECT_TYPE_CONFIG } from "@/types";
 
 interface EditProjectDialogProps {
   project: Project;
@@ -48,9 +50,10 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
   const form = useForm<z.infer<typeof ProjectFormSchema>>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: {
-      name: project.name,
-      description: project.description,
-      status: project.status,
+      name: project.name || "",
+      description: project.description || "",
+      status: project.status || "pending",
+      project_type: project.project_type || undefined,
       dueDate: project.dueDate || undefined,
       client_id: project.client_id || "", // Valor por defecto para el selector de cliente
     },
@@ -58,17 +61,18 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
 
   useEffect(() => {
     form.reset({
-      name: project.name,
-      description: project.description,
-      status: project.status,
+      name: project.name || "",
+      description: project.description || "",
+      status: project.status || "pending",
+      project_type: project.project_type || undefined,
       dueDate: project.dueDate || undefined,
       client_id: project.client_id || "",
     });
   }, [project, form]);
 
-  const onSubmit = (values: z.infer<typeof ProjectFormSchema>) => {
+  const onSubmit = async (values: z.infer<typeof ProjectFormSchema>) => {
     try {
-      onUpdateProject(project.id, values);
+      await onUpdateProject(project.id, values);
       showSuccess("Proyecto actualizado exitosamente.");
       setOpen(false);
     } catch (error) {
@@ -119,6 +123,39 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="project_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Proyecto (Opcional)</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
+                    defaultValue={field.value || "none"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Sin tipo específico</SelectItem>
+                      {Object.entries(PROJECT_TYPE_CONFIG).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center space-x-2">
+                            <span>{config.icon}</span>
+                            <span>{config.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="status"
