@@ -6,7 +6,7 @@ import { useProjectContext, Task } from "@/context/ProjectContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskCard } from "@/components/TaskCard";
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+// Drag and drop functionality now handled by TaskBoard component
 import { GanttChart } from "@/components/GanttChart";
 import { showSuccess, showError } from "@/utils/toast";
 import { Button } from "@/components/ui/button";

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Task } from '@/context/ProjectContext';
 import { TaskCard } from '@/components/TaskCard';
 import { VirtualTaskList } from '@/components/VirtualList';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+// Note: This component may need updating if drag & drop is required
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ListChildComponentProps } from 'react-window';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ interface OptimizedTaskListProps {
   onEdit: (projectId: string, taskId: string, updatedFields: Partial<Task>) => void;
   onDelete: (projectId: string, taskId: string) => void;
   onUpdateStatus: (projectId: string, taskId: string, newStatus: Task['status']) => void;
-  onDragEnd?: (result: DropResult) => void;
+  onDragEnd?: (result: any) => void; // TODO: Update when drag & drop is migrated to @dnd-kit
   droppableId: string;
   maxHeight?: number;
   virtualScrollThreshold?: number; // Number of tasks before activating virtual scrolling
@@ -72,41 +72,26 @@ export const OptimizedTaskList: React.FC<OptimizedTaskListProps> = ({
       );
     }
 
+    // Drag & drop temporarily disabled - needs migration to @dnd-kit
     return (
-      <Droppable droppableId={droppableId}>
-        {(provided) => (
-          <ScrollArea className={cn("h-full w-full pr-2", className)} style={{ maxHeight }}>
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="space-y-3"
-            >
-              {tasks.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No hay tareas aquí.</p>
-              ) : (
-                tasks.map((task, index) => (
-                  <Draggable key={task.id} draggableId={task.id} index={index}>
-                    {(providedDraggable) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        projectId={task.projectId}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onUpdateStatus={onUpdateStatus}
-                        draggableProps={providedDraggable.draggableProps}
-                        dragHandleProps={providedDraggable.dragHandleProps}
-                        ref={providedDraggable.innerRef}
-                      />
-                    )}
-                  </Draggable>
-                ))
-              )}
-              {provided.placeholder}
-            </div>
-          </ScrollArea>
-        )}
-      </Droppable>
+      <ScrollArea className={cn("h-full w-full pr-2", className)} style={{ maxHeight }}>
+        <div className="space-y-3">
+          {tasks.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No hay tareas aquí.</p>
+          ) : (
+            tasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                projectId={task.projectId}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onUpdateStatus={onUpdateStatus}
+              />
+            ))
+          )}
+        </div>
+      </ScrollArea>
     );
   };
 
@@ -143,14 +128,14 @@ export const OptimizedTaskList: React.FC<OptimizedTaskListProps> = ({
     );
   };
 
-  // Wrap with DragDropContext if drag & drop is enabled and not using virtual scrolling
-  if (enableDragDrop && !shouldUseVirtualScrolling && onDragEnd) {
-    return (
-      <DragDropContext onDragEnd={onDragEnd}>
-        {renderRegularList()}
-      </DragDropContext>
-    );
-  }
+  // Drag & drop temporarily disabled - needs migration to @dnd-kit
+  // if (enableDragDrop && !shouldUseVirtualScrolling && onDragEnd) {
+  //   return (
+  //     <DragDropContext onDragEnd={onDragEnd}>
+  //       {renderRegularList()}
+  //     </DragDropContext>
+  //   );
+  // }
 
   // Return appropriate list based on size
   return shouldUseVirtualScrolling ? renderVirtualList() : renderRegularList();
