@@ -51,72 +51,33 @@ const Tasks = () => {
     updateTaskStatus(projectId, taskId, newStatus);
   };
 
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+  // Drag & drop removed - using TaskBoard component for drag functionality in project details
 
-    if (!destination) {
-      return;
-    }
-
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
-      return;
-    }
-
-    const draggedTask = allTasksWithProjectInfo.find(task => task.id === draggableId);
-    if (!draggedTask) return;
-
-    const isMovingToDaily = destination.droppableId === 'daily-tasks';
-    const isMovingFromDaily = source.droppableId === 'daily-tasks';
-
-    if (isMovingToDaily && !draggedTask.is_daily_task) {
-      updateTaskDailyStatus(draggedTask.projectId, draggedTask.id, true);
-    } else if (isMovingFromDaily && draggedTask.is_daily_task) {
-      updateTaskDailyStatus(draggedTask.projectId, draggedTask.id, false);
-    }
-  };
-
-  const renderTaskListColumn = (tasks: (Task & { projectName: string; projectId: string })[], droppableId: string, title: string) => (
-    <Droppable droppableId={droppableId}>
-      {(provided) => (
-        <Card
-          ref={provided.innerRef}
-          {...provided.droppableProps}
-          className="flex flex-col h-full"
-        >
-          <CardHeader>
-            <CardTitle>{title} ({tasks.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow p-4">
-            <ScrollArea className="h-full w-full pr-2">
-              {tasks.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No hay tareas aquí.</p>
-              ) : (
-                <div className="space-y-3">
-                  {tasks.map((task, index) => (
-                    <Draggable key={task.id} draggableId={task.id} index={index}>
-                      {(providedDraggable) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          projectId={task.projectId}
-                          onEdit={handleEditTask}
-                          onDelete={handleDeleteTask}
-                          onUpdateStatus={handleUpdateTaskStatus}
-                          draggableProps={providedDraggable.draggableProps}
-                          dragHandleProps={providedDraggable.dragHandleProps}
-                          innerRef={providedDraggable.innerRef}
-                        />
-                      )}
-                    </Draggable>
-                  ))}
-                </div>
-              )}
-              {provided.placeholder}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-    </Droppable>
+  const renderTaskListColumn = (tasks: (Task & { projectName: string; projectId: string })[], listId: string, title: string) => (
+    <Card className="flex flex-col h-full">
+      <CardHeader>
+        <CardTitle>{title} ({tasks.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-grow p-4">
+        <ScrollArea className="h-full w-full pr-2">
+          {tasks.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No hay tareas aquí.</p>
+          ) : (
+            <div className="space-y-3">
+              {tasks.map((task) => (
+                <TaskCard
+                  task={task}
+                  projectId={task.projectId}
+                  onEdit={handleEditTask}
+                  onDelete={handleDeleteTask}
+                  onUpdateStatus={handleUpdateTaskStatus}
+                />
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -137,12 +98,10 @@ const Tasks = () => {
         onOpenChange={setIsTaskDialogOpen}
       />
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 h-[calc(100vh-350px)]">
-          {renderTaskListColumn(nonDailyTasks, 'all-tasks', 'Todas las Tareas')}
-          {renderTaskListColumn(dailyTasks, 'daily-tasks', 'Tareas del Día')}
-        </div>
-      </DragDropContext>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 h-[calc(100vh-350px)]">
+        {renderTaskListColumn(nonDailyTasks, 'all-tasks', 'Todas las Tareas')}
+        {renderTaskListColumn(dailyTasks, 'daily-tasks', 'Tareas del Día')}
+      </div>
 
       <Card className="mt-6">
         <CardHeader>
