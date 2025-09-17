@@ -4,6 +4,15 @@ import "./globals.css";
 import { BrowserRouter } from "react-router-dom"; // Import BrowserRouter
 import type { Session } from '@supabase/supabase-js';
 
+// Temporary debug for production - REMOVE AFTER FIXING
+if (import.meta.env.NODE_ENV === 'production') {
+  console.log('🔍 Environment Debug:');
+  console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+  console.log('VITE_SUPABASE_ANON_KEY exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+  console.log('VITE_SUPABASE_ANON_KEY length:', import.meta.env.VITE_SUPABASE_ANON_KEY?.length);
+  console.log('VITE_APP_URL:', import.meta.env.VITE_APP_URL);
+}
+
 interface EmergencyFallback {
   errorCount: number;
   lastError?: Error;
