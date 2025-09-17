@@ -152,7 +152,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: unknown) {
       // Check if request was aborted
       if (error instanceof Error && error.name !== 'AbortError') {
-        console.error('Error fetching tasks:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching tasks:', error);
+        }
         showError("Error al cargar las tareas");
       }
     } finally {
@@ -200,7 +202,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       await fetchTasks(); // Refresh the task list
       showSuccess("Tarea creada exitosamente");
     } catch (error) {
-      console.error('Error creating task:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error creating task:', error);
+      }
       showError("Error al crear la tarea");
       throw error;
     }
@@ -226,7 +230,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       await fetchTasks(); // Refresh the task list
       showSuccess("Tarea actualizada exitosamente");
     } catch (error) {
-      console.error('Error updating task:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating task:', error);
+      }
       showError("Error al actualizar la tarea");
       throw error;
     }
@@ -249,7 +255,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       await fetchTasks(); // Refresh the task list
       showSuccess("Tarea eliminada exitosamente");
     } catch (error) {
-      console.error('Error deleting task:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting task:', error);
+      }
       showError("Error al eliminar la tarea");
       throw error;
     }
@@ -294,7 +302,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       await fetchTasks(); // Refresh the task list
       showSuccess("Tareas reordenadas exitosamente");
     } catch (error) {
-      console.error('Error reordering tasks:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error reordering tasks:', error);
+      }
       showError("Error al reordenar las tareas");
       throw error;
     }

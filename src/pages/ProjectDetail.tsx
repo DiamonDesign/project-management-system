@@ -64,7 +64,7 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; project: any }) => {
+const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; project: Project }) => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   return (

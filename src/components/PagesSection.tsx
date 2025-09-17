@@ -149,10 +149,10 @@ export const PagesSection = ({ projectId }: PagesSectionProps) => {
             <Button
               onClick={() => setIsAddDialogOpen(true)}
               size="lg"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 relative pl-9 pr-3"
             >
-              <Plus className="h-5 w-5 mr-2" />
-              Crear primer documento
+              <Plus className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 flex-shrink-0 pointer-events-none" />
+              <span>Crear primer documento</span>
             </Button>
           </div>
         ) : filteredPages.length === 0 ? (

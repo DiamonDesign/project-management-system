@@ -67,8 +67,9 @@ export const EditClientDialog = ({ client }: EditClientDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-2">
-          <Pencil className="h-4 w-4 mr-2" /> Editar
+        <Button variant="outline" size="sm" className="ml-2 relative pl-9 pr-3">
+          <Pencil className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span>Editar</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

@@ -233,9 +233,10 @@ export const PageEditor = ({ projectId, page, onClose }: PageEditorProps) => {
                     size="sm"
                     onClick={handleSave}
                     disabled={isSaving || !title.trim()}
+                    className="relative pl-9 pr-3"
                   >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? "Guardando..." : "Guardar"}
+                    <Save className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                    <span>{isSaving ? "Guardando..." : "Guardar"}</span>
                   </Button>
                 </>
               ) : (
@@ -256,9 +257,10 @@ export const PageEditor = ({ projectId, page, onClose }: PageEditorProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(true)}
+                    className="relative pl-9 pr-3"
                   >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Editar
+                    <Edit3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                    <span>Editar</span>
                   </Button>
 
                   <AlertDialog>

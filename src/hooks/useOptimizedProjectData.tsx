@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
+import { isValidDate, safeToDate } from "@/lib/utils";
 import type { Project, Task } from "@/context/ProjectContext";
 
 // Raw database interfaces for type safety
@@ -113,7 +114,7 @@ export const useOptimizedProjectData = (): UseOptimizedProjectDataReturn => {
           notes,
           tasks,
           created_at,
-          client:clients!inner(
+          client:clients(
             id,
             name,
             email,
@@ -144,6 +145,17 @@ export const useOptimizedProjectData = (): UseOptimizedProjectDataReturn => {
       clientProjectsLookup.current.clear();
 
       data.forEach((project: RawProjectFromDB) => {
+        // FIXED: Validate and normalize project due date
+        let normalizedDueDate: string | null = null;
+        if (project.due_date) {
+          const validDate = safeToDate(project.due_date);
+          if (validDate && isValidDate(validDate)) {
+            normalizedDueDate = validDate.toISOString();
+          } else {
+            console.warn(`useOptimizedProjectData: Invalid due_date for project ${project.id}:`, project.due_date);
+          }
+        }
+
         // Normalize project data
         const normalizedProject: OptimizedProjectData = {
           id: project.id,
@@ -151,7 +163,7 @@ export const useOptimizedProjectData = (): UseOptimizedProjectDataReturn => {
           name: project.name,
           description: project.description,
           status: project.status,
-          dueDate: project.due_date,
+          dueDate: normalizedDueDate, // FIXED: Always normalized to ISO string or null
           client_id: project.client_id,
           // Denormalized client data for performance
           clientName: project.client?.name || null,
@@ -163,21 +175,47 @@ export const useOptimizedProjectData = (): UseOptimizedProjectDataReturn => {
           created_at: project.created_at,
         };
 
-        // Process and normalize tasks
-        const projectTasks = (Array.isArray(project.tasks) ? project.tasks : []).map((task: RawTaskFromDB) => ({
-          id: task.id || `${Date.now()}-${Math.random()}`,
-          title: task.title || task.description || "",
-          description: task.description_long || task.details || task.description || "",
-          createdAt: task.createdAt || task.created_at || new Date().toISOString(),
-          status: task.status || (task.completed ? 'completed' : 'not-started'),
-          start_date: task.start_date,
-          end_date: task.end_date,
-          is_daily_task: task.is_daily_task || false,
-          priority: task.priority || 'medium',
-          // Add optimized references
-          projectId: project.id,
-          projectName: project.name,
-        }));
+        // Process and normalize tasks with date validation
+        const projectTasks = (Array.isArray(project.tasks) ? project.tasks : [])
+          .map((task: RawTaskFromDB) => {
+            // FIXED: Validate and normalize task dates
+            let normalizedStartDate: string | null = null;
+            let normalizedEndDate: string | null = null;
+
+            if (task.start_date) {
+              const validStartDate = safeToDate(task.start_date);
+              if (validStartDate && isValidDate(validStartDate)) {
+                normalizedStartDate = validStartDate.toISOString();
+              } else {
+                console.warn(`useOptimizedProjectData: Invalid start_date for task ${task.id}:`, task.start_date);
+              }
+            }
+
+            if (task.end_date) {
+              const validEndDate = safeToDate(task.end_date);
+              if (validEndDate && isValidDate(validEndDate)) {
+                normalizedEndDate = validEndDate.toISOString();
+              } else {
+                console.warn(`useOptimizedProjectData: Invalid end_date for task ${task.id}:`, task.end_date);
+              }
+            }
+
+            return {
+              id: task.id || `${Date.now()}-${Math.random()}`,
+              title: task.title || task.description || "",
+              description: task.description_long || task.details || task.description || "",
+              createdAt: task.createdAt || task.created_at || new Date().toISOString(),
+              status: task.status || (task.completed ? 'completed' : 'not-started'),
+              start_date: normalizedStartDate, // FIXED: Always ISO string or null
+              end_date: normalizedEndDate,     // FIXED: Always ISO string or null
+              is_daily_task: task.is_daily_task || false,
+              priority: task.priority || 'medium',
+              // Add optimized references
+              projectId: project.id,
+              projectName: project.name,
+            };
+          })
+          .filter(task => task.title.trim() !== ''); // FIXED: Filter out tasks with empty titles
 
         // Pre-calculate statistics
         const completedTasksCount = projectTasks.filter(t => t.status === 'completed').length;

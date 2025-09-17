@@ -53,7 +53,7 @@ export const PWAPrompt: React.FC<PWAPromptProps> = ({ className }) => {
       
       toast({
         title: "¡Aplicación instalada!",
-        description: "FreelanceFlow está ahora disponible en tu dispositivo",
+        description: "Visionday está ahora disponible en tu dispositivo",
         duration: 5000,
       });
     } catch (error) {
@@ -148,7 +148,7 @@ export const PWAPrompt: React.FC<PWAPromptProps> = ({ className }) => {
                   <Smartphone className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Instalar FreelanceFlow</CardTitle>
+                  <CardTitle className="text-lg">Instalar Visionday</CardTitle>
                   <CardDescription>
                     Accede más rápido y usa la app offline
                   </CardDescription>
@@ -219,7 +219,7 @@ export const PWAPrompt: React.FC<PWAPromptProps> = ({ className }) => {
                 ¡App instalada correctamente!
               </p>
               <p className="text-sm text-green-600 dark:text-green-400">
-                FreelanceFlow está disponible en tu dispositivo
+                Visionday está disponible en tu dispositivo
               </p>
             </div>
             <Badge variant="secondary" className="bg-green-100 text-green-800">

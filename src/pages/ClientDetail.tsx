@@ -81,8 +81,9 @@ const ClientDetail = () => {
           <EditClientDialog client={client} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+              <Button variant="destructive" size="sm" className="relative pl-9 pr-3">
+                <Trash2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                <span>Eliminar</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

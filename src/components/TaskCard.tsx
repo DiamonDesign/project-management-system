@@ -36,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { format, isAfter, isBefore, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -324,10 +323,10 @@ export const TaskCard = ({
                   e.stopPropagation();
                   setEditing(true);
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer relative pl-9 pr-3"
               >
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar tarea
+                <Pencil className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                <span>Editar tarea</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -335,10 +334,10 @@ export const TaskCard = ({
                   e.stopPropagation();
                   onDelete(projectId, task.id);
                 }}
-                className="cursor-pointer text-red-600 focus:text-red-600"
+                className="cursor-pointer text-red-600 focus:text-red-600 relative pl-9 pr-3"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
+                <Trash2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                <span>Eliminar</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -391,18 +390,18 @@ export const TaskCard = ({
                   variant="outline"
                   size="sm"
                   onClick={handleCancel}
-                  className="h-9 px-4"
+                  className="h-9 relative pl-9 pr-3"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancelar
+                  <X className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                  <span>Cancelar</span>
                 </Button>
                 <Button
                   onClick={handleSave}
                   size="sm"
-                  className="h-9 px-4 bg-green-600 hover:bg-green-700"
+                  className="h-9 relative pl-9 pr-3 bg-green-600 hover:bg-green-700"
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar
+                  <Save className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                  <span>Guardar</span>
                 </Button>
               </div>
             </div>

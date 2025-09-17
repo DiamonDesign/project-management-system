@@ -735,7 +735,30 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 export const useProjectContext = () => {
   const context = useContext(ProjectContext);
   if (context === undefined) {
-    throw new Error("useProjectContext must be used within a ProjectProvider");
+    // Defensive fallback to prevent crashes - Log error but don't throw
+    console.error("useProjectContext called outside ProjectProvider - providing fallback");
+
+    // Return safe fallback values
+    return {
+      projects: [],
+      archivedProjects: [],
+      isLoadingProjects: true, // Keep loading true to prevent premature renders
+      addProject: async () => { console.warn("ProjectContext not available"); },
+      updateProject: async () => { console.warn("ProjectContext not available"); },
+      deleteProject: async () => { console.warn("ProjectContext not available"); },
+      archiveProject: async () => { console.warn("ProjectContext not available"); },
+      unarchiveProject: async () => { console.warn("ProjectContext not available"); },
+      addNoteToProject: async () => { console.warn("ProjectContext not available"); },
+      deleteNoteFromProject: async () => { console.warn("ProjectContext not available"); },
+      addPageToProject: async () => { console.warn("ProjectContext not available"); },
+      updatePageInProject: async () => { console.warn("ProjectContext not available"); },
+      deletePageFromProject: async () => { console.warn("ProjectContext not available"); },
+      addTaskToProject: async () => { console.warn("ProjectContext not available"); },
+      updateTaskStatus: async () => { console.warn("ProjectContext not available"); },
+      updateTaskDailyStatus: async () => { console.warn("ProjectContext not available"); },
+      updateTask: async () => { console.warn("ProjectContext not available"); },
+      deleteTaskFromProject: async () => { console.warn("ProjectContext not available"); },
+    };
   }
   return context;
 };

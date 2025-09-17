@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { SimpleCalendar } from "@/components/ui/simple-calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -210,7 +210,7 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full relative pl-3 pr-12 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -219,17 +219,14 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
                           ) : (
                             <span>Selecciona una fecha</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
+                      <SimpleCalendar
                         selected={field.value ? new Date(field.value) : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
-                        initialFocus
-                        locale={es}
                       />
                     </PopoverContent>
                   </Popover>
@@ -250,7 +247,7 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full relative pl-3 pr-12 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -259,17 +256,14 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
                           ) : (
                             <span>Selecciona una fecha</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
+                      <SimpleCalendar
                         selected={field.value ? new Date(field.value) : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
-                        initialFocus
-                        locale={es}
                       />
                     </PopoverContent>
                   </Popover>

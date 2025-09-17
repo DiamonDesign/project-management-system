@@ -303,9 +303,9 @@ const Projects = () => {
             </p>
             <Dialog open={isAddProjectDialogOpen} onOpenChange={setIsAddProjectDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="mt-4">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Crear primer proyecto
+                <Button className="mt-4 relative pl-9 pr-3">
+                  <PlusCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                  <span>Crear primer proyecto</span>
                 </Button>
               </DialogTrigger>
               <AddProjectDialog

@@ -80,11 +80,41 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         )
       ]);
 
-      const { data: profileData, error: profileError } = profileResult as any;
+      const { data: profileData, error: profileError } = profileResult as {
+        data: {
+          id?: string;
+          role?: string;
+          full_name?: string;
+          first_name?: string;
+          last_name?: string;
+          avatar_url?: string;
+          company?: string;
+          bio?: string;
+          website?: string;
+          location?: string;
+          phone?: string;
+          timezone?: string;
+          last_login?: string;
+          login_count?: number;
+          client_portal_access?: {
+            is_client?: boolean;
+            assigned_projects?: string[];
+            invite_token?: string;
+            invited_by?: string;
+            invited_at?: string;
+          };
+        } | null;
+        error: {
+          code?: string;
+          message?: string;
+        } | null;
+      } | null;
       
       
       if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = not found
-        console.error("Error fetching profile:", profileError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error fetching profile:", profileError);
+        }
       }
       
       // Default role for new users or fallback
@@ -126,7 +156,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       
       // If enhancement fails, return a basic user without profile data
       if (error instanceof Error && error.message.includes('timeout')) {
-        console.warn('[SessionContext] Using basic user due to timeout');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[SessionContext] Using basic user due to timeout');
+        }
         return {
           id: baseUser.id,
           email: baseUser.email || '',
@@ -152,19 +184,23 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         
         // Set a timeout to prevent infinite loading
         const sessionTimeout = setTimeout(() => {
-          console.warn('[SessionContext] Session initialization timeout - activating emergency mode');
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[SessionContext] Session initialization timeout - activating emergency mode');
+          }
           if (isMounted) {
             setEmergencyMode(true);
             setSession(null);
             setUser(null);
             setIsLoading(false);
           }
-        }, 3000); // 3 second timeout - much more aggressive
+        }, 10000); // 10 second timeout - more conservative
         
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('[SessionContext] Session initialization error:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[SessionContext] Session initialization error:', error);
+          }
           clearTimeout(sessionTimeout);
           setIsLoading(false);
           return;
@@ -184,9 +220,14 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             setSession(authSession);
             setUser(enhancedUser);
           } else if (isMounted) {
-            console.warn('[SessionContext] User enhancement failed, continuing without enhanced data');
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[SessionContext] User enhancement failed, continuing without enhanced data');
+            }
           }
         } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[SessionContext] No current session found');
+          }
         }
         
         clearTimeout(sessionTimeout);
@@ -194,7 +235,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('[SessionContext] Session initialization failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[SessionContext] Session initialization failed:', error);
+        }
         if (isMounted) {
           setIsLoading(false);
         }
@@ -235,21 +278,21 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             setUser(null);
             navigate('/login');
           } else if (event === 'TOKEN_REFRESHED' && currentSession) {
-            const enhancedUser = await enhanceUser(currentSession.user);
-            if (enhancedUser && isMounted) {
-              const authSession: AuthSession = {
-                user: enhancedUser,
+            // Solo actualizar tokens, mantener datos de usuario existentes
+            if (isMounted && session) {
+              const updatedSession: AuthSession = {
+                ...session,
                 access_token: currentSession.access_token,
                 refresh_token: currentSession.refresh_token,
                 expires_at: currentSession.expires_at,
-                token_type: 'bearer'
               };
-              setSession(authSession);
-              setUser(enhancedUser);
+              setSession(updatedSession);
             }
           }
         } catch (error) {
-          console.error('[SessionContext] Auth state change error:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[SessionContext] Auth state change error:', error);
+          }
         } finally {
           if (isMounted) {
             setIsLoading(false);
@@ -280,7 +323,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       showSuccess("¡Bienvenido! Has iniciado sesión correctamente.");
     } catch (error: unknown) {
       const appError = error as AppError;
-      console.error("Error signing in:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error signing in:", error);
+      }
       const message = appError?.message || "Error al iniciar sesión";
       showError(message);
       throw error;
@@ -307,7 +352,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       navigate('/login');
     } catch (error: unknown) {
       const appError = error as AppError;
-      console.error("Error signing out:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error signing out:", error);
+      }
       const message = error?.message || "Error al cerrar sesión";
       showError(message);
       throw error;
@@ -357,11 +404,15 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         <div className="bg-amber-100 border-b border-amber-200 p-2 text-center">
           <p className="text-sm text-amber-800">
             ⚠️ Modo de emergencia activo - Algunas funciones pueden estar limitadas. 
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => {
+                setEmergencyMode(false);
+                setIsLoading(true);
+                initializeSession();
+              }}
               className="underline ml-1 hover:no-underline"
             >
-              Recargar para restaurar funcionalidad completa
+              Reintentar conexión
             </button>
           </p>
         </div>

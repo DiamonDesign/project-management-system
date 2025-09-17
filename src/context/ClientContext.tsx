@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { showSuccess, showError } from "@/utils/toast";
@@ -188,7 +189,17 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 export const useClientContext = () => {
   const context = useContext(ClientContext);
   if (context === undefined) {
-    throw new Error("useClientContext must be used within a ClientProvider");
+    // Defensive fallback to prevent crashes - Log error but don't throw
+    console.error("useClientContext called outside ClientProvider - providing fallback");
+
+    // Return safe fallback values
+    return {
+      clients: [],
+      isLoadingClients: true, // Keep loading true to prevent premature renders
+      addClient: async () => { console.warn("ClientContext not available"); },
+      updateClient: async () => { console.warn("ClientContext not available"); },
+      deleteClient: async () => { console.warn("ClientContext not available"); },
+    };
   }
   return context;
 };

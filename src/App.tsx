@@ -33,10 +33,11 @@ const ClientPortalDashboard = React.lazy(() => import("./pages/ClientPortalDashb
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
-      retry: 2,
+      staleTime: 15 * 60 * 1000, // 15 minutes - longer cache
+      gcTime: 30 * 60 * 1000, // 30 minutes - longer garbage collection
+      retry: 1, // Reduce retries to prevent loops
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false, // Disable auto-refetch on reconnect
     },
   },
 });

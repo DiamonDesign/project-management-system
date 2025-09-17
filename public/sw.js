@@ -153,15 +153,21 @@ async function networkFirstStrategy(request) {
 // Stale While Revalidate Strategy - For semi-dynamic content
 async function staleWhileRevalidateStrategy(request) {
   const cachedResponse = await caches.match(request);
-  
-  const networkResponsePromise = fetch(request).then(networkResponse => {
+
+  const networkResponsePromise = fetch(request).then(async networkResponse => {
     if (networkResponse.ok) {
-      const cache = caches.open(DYNAMIC_CACHE);
-      cache.then(c => c.put(request, networkResponse.clone()));
+      // Clone the response BEFORE any other operations to prevent body consumption
+      const responseClone = networkResponse.clone();
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE);
+        await cache.put(request, responseClone);
+      } catch (error) {
+        console.warn('[SW] Cache storage failed:', error);
+      }
     }
     return networkResponse;
   }).catch(() => cachedResponse);
-  
+
   return cachedResponse || networkResponsePromise;
 }
 
@@ -292,8 +298,8 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: data.tag || 'general',
     requireInteraction: false,
     actions: data.actions || []

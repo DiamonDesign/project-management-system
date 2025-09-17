@@ -23,7 +23,7 @@ export default defineConfig({
           supabase: ['@supabase/supabase-js', '@supabase/auth-ui-react'],
           utils: ['date-fns', 'clsx', 'tailwind-merge', 'lucide-react'],
           charts: ['recharts'],
-          dnd: ['@hello-pangea/dnd'],
+          dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
           query: ['@tanstack/react-query'],
         },
         // Use contenthash for better caching

@@ -30,7 +30,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 import { CalendarIcon, Pencil } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { SimpleCalendar } from "@/components/ui/simple-calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -84,8 +84,9 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-2">
-          <Pencil className="h-4 w-4 mr-2" /> Editar
+        <Button variant="outline" size="sm" className="ml-2 relative pl-9 pr-3">
+          <Pencil className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span>Editar</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -222,7 +223,7 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full relative pl-3 pr-12 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -231,17 +232,15 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
                           ) : (
                             <span>Selecciona una fecha</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
+                      <SimpleCalendar
                         selected={field.value ? new Date(field.value) : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
-                        initialFocus
-                        locale={es}
+                        compact={true}
                       />
                     </PopoverContent>
                   </Popover>

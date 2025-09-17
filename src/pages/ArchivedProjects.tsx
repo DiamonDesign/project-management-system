@@ -3,7 +3,7 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useProjectContext } from "@/context/ProjectContext";
+import { useProjectContext, type Project } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
 import { useSession } from "@/hooks/useSession";
 import { Navigate } from "react-router-dom";
@@ -87,7 +87,7 @@ const ArchivedProjects = () => {
     }
   };
 
-  const ArchivedProjectCard = ({ project }: { project: any }) => {
+  const ArchivedProjectCard = ({ project }: { project: Project }) => {
     const archivedDate = project.archived_at ? format(new Date(project.archived_at), "PPP", { locale: es }) : '';
 
     if (viewMode === 'list') {
@@ -151,18 +151,19 @@ const ArchivedProjects = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleUnarchive(project.id)}
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 relative pl-9 pr-3"
                 >
-                  <ArchiveRestore className="h-4 w-4 mr-1" />
-                  Desarchivar
+                  <ArchiveRestore className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                  <span>Desarchivar</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDelete(project.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 relative pl-9 pr-3"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                  <span>Eliminar</span>
                 </Button>
               </div>
             </div>
@@ -220,19 +221,19 @@ const ArchivedProjects = () => {
             variant="outline"
             size="sm"
             onClick={() => handleUnarchive(project.id)}
-            className="text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
+            className="text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50 relative pl-9 pr-3"
           >
-            <ArchiveRestore className="h-4 w-4 mr-1" />
-            Desarchivar
+            <ArchiveRestore className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+            <span>Desarchivar</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleDelete(project.id)}
-            className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+            className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 relative pl-9 pr-3"
           >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Eliminar
+            <Trash2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+            <span>Eliminar</span>
           </Button>
         </div>
       </div>

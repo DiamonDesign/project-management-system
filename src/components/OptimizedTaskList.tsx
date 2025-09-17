@@ -17,7 +17,7 @@ interface OptimizedTaskListProps {
   onEdit: (projectId: string, taskId: string, updatedFields: Partial<Task>) => void;
   onDelete: (projectId: string, taskId: string) => void;
   onUpdateStatus: (projectId: string, taskId: string, newStatus: Task['status']) => void;
-  onDragEnd?: (result: any) => void; // TODO: Update when drag & drop is migrated to @dnd-kit
+  onDragEnd?: (result: { destination?: { index: number }; source: { index: number }; draggableId: string }) => void;
   droppableId: string;
   maxHeight?: number;
   virtualScrollThreshold?: number; // Number of tasks before activating virtual scrolling

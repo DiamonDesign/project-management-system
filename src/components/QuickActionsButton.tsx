@@ -105,14 +105,17 @@ export const QuickActionsButton = () => {
               <DropdownMenuItem
                 key={index}
                 onClick={action.action}
-                className="flex items-center gap-3 py-2.5 cursor-pointer group"
+                className="relative flex items-center py-2.5 cursor-pointer group pl-9 pr-3"
               >
-                <div className="flex items-center justify-center w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors">
-                  <action.icon className="h-4 w-4" />
-                </div>
-                <span className="flex-1">{action.label}</span>
+                {/* Icono absoluto a la izquierda */}
+                <action.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none text-muted-foreground group-hover:text-foreground transition-colors" />
+
+                {/* Texto alineado normalmente */}
+                <span className="flex-1 text-sm font-medium">{action.label}</span>
+
+                {/* Shortcut absoluto a la derecha */}
                 {action.shortcut && (
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">
                     {action.shortcut}
                   </span>
                 )}

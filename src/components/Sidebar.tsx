@@ -107,21 +107,13 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
       )}
     >
       {/* Enhanced Header */}
-      <div className="flex items-center justify-center h-16 mb-6">
-        <Link 
-          to="/dashboard" 
-          className="group flex items-center gap-3 hover:scale-105 transition-transform duration-200"
+      <div className="flex items-center justify-center h-28 mb-4">
+        <Link
+          to="/dashboard"
+          className="group flex items-center justify-center w-full h-full hover:scale-105 transition-transform duration-200"
           onClick={onClose}
         >
-          <div className="p-2 bg-gradient-primary rounded-xl shadow-glow group-hover:shadow-glow-lg transition-all">
-            <Briefcase className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-bold bg-gradient-to-r from-sidebar-primary to-sidebar-primary/70 bg-clip-text text-transparent">
-              FreelanceFlow
-            </span>
-            <span className="text-xs text-muted-foreground">Gestión de proyectos</span>
-          </div>
+          <img src="/visionday_logo_horizontal.svg" alt="Visionday" className="w-full h-full object-contain max-w-none" />
         </Link>
       </div>
       
@@ -251,14 +243,17 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
         {/* Sign Out Button */}
         <Button
           variant="ghost"
-          className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive transition-all duration-200 group px-3 py-2.5 gap-3"
+          className="w-full h-10 relative flex items-center justify-start pl-9 pr-3 text-destructive hover:bg-destructive/10 hover:text-destructive transition-all duration-200 group text-sm font-medium"
           onClick={handleSignOut}
         >
-          <div className="flex items-center justify-center w-4 h-4 shrink-0">
-            <LogOut className="h-4 w-4" />
-          </div>
-          <span className="flex-1 text-left">Cerrar Sesión</span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Icono absoluto a la izquierda */}
+          <LogOut className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+
+          {/* Texto alineado normalmente */}
+          <span className="text-sm font-medium">Cerrar Sesión</span>
+
+          {/* Indicador hover a la derecha */}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
           </div>
         </Button>

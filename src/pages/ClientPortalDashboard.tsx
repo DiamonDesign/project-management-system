@@ -79,7 +79,9 @@ const ClientPortalDashboard = () => {
         .eq("id", clientId)
         .single();
 
-      if (clientError) console.error("Error fetching client name:", clientError);
+      if (clientError && process.env.NODE_ENV === 'development') {
+        console.error("Error fetching client name:", clientError);
+      }
       if (clientData) setClientName(clientData.name);
 
       const projectsWithNormalizedData = projectsData.map(project => ({
@@ -99,7 +101,9 @@ const ClientPortalDashboard = () => {
     } catch (error: unknown) {
       const appError = error as AppError;
       showError("Error al cargar tus proyectos: " + appError.message);
-      console.error("Error fetching client projects:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error fetching client projects:", error);
+      }
       setClientProjects([]);
     } finally {
       setIsLoadingProjects(false);
@@ -133,8 +137,9 @@ const ClientPortalDashboard = () => {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Bienvenido, {clientName}</h1>
-        <Button variant="outline" onClick={signOut} disabled={isSigningOut}>
-          <LogOut className="h-4 w-4 mr-2" /> {isSigningOut ? "Cerrando..." : "Cerrar Sesión"}
+        <Button variant="outline" onClick={signOut} disabled={isSigningOut} className="relative pl-9 pr-3">
+          <LogOut className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span>{isSigningOut ? "Cerrando..." : "Cerrar Sesión"}</span>
         </Button>
       </div>
 

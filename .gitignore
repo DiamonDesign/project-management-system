@@ -29,3 +29,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude documentation (keep local only)
+claudedocs/
+
+# Temporary and backup files
+*.tmp
+*.temp
+.backup/
+backup-*/
+*.bak
+
+# Debug files
+debug.sh
+test.log
+temp/
+script.py
+utility.js
+debug*.py
+test_*.sh

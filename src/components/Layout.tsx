@@ -59,13 +59,13 @@ export const Layout = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gradient-bg">
+    <div className="flex h-screen bg-gradient-bg">
       {/* Search Command Dialog */}
-      <SearchCommand 
-        open={isSearchOpen} 
-        onOpenChange={setIsSearchOpen} 
+      <SearchCommand
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
       />
-      
+
       {isMobile ? (
         <>
           {/* Mobile Header */}
@@ -91,7 +91,7 @@ export const Layout = () => {
                 </Sheet>
                 
                 <h1 className="font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                  FreelanceFlow
+                  Visionday
                 </h1>
               </div>
               
@@ -163,7 +163,7 @@ export const Layout = () => {
         <>
           {/* Desktop Layout */}
           <Sidebar onOpenSearch={handleOpenSearch} />
-          <main className="flex-1 overflow-auto min-h-screen">
+          <main className="flex-1 overflow-auto h-screen">
             <div className="animate-fade-in">
               <Outlet />
             </div>

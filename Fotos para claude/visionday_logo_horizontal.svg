@@ -2,12 +2,15 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="4.3688145mm"
-   height="4.656991mm"
-   viewBox="0 0 4.3688145 4.656991"
+   width="7.0199389mm"
+   height="2.3018703mm"
+   viewBox="0 0 7.019939 2.3018703"
    version="1.1"
    id="svg1"
    sodipodi:docname="visionday_logo.svg"
+   inkscape:export-filename="visionday_logo.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -24,10 +27,10 @@
      inkscape:document-units="mm">
     <inkscape:page
        x="0"
-       y="2.0493083e-15"
-       width="4.3688145"
-       height="4.6569915"
-       id="page2"
+       y="1.214289e-14"
+       width="7.0199389"
+       height="2.3018703"
+       id="page1"
        margin="0"
        bleed="0" />
   </sodipodi:namedview>
@@ -37,25 +40,20 @@
      inkscape:label="Capa 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-80.572744,-87.516406)">
+     transform="translate(-80.593693,-94.477873)">
     <text
        xml:space="preserve"
        style="font-size:3.175px;line-height:0.75;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;stroke-width:0.264583"
-       x="84.989182"
-       y="89.777008"
+       x="87.661255"
+       y="96.738472"
        id="text1"
        inkscape:export-filename="visionday_logo.svg"
        inkscape:export-xdpi="96"
        inkscape:export-ydpi="96"><tspan
          sodipodi:role="line"
-         id="tspan1"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0.75;font-family:Mecaros;-inkscape-font-specification:Mecaros;text-align:end;text-anchor:end;stroke-width:0.264583"
-         x="84.989182"
-         y="89.777008">VISION</tspan><tspan
-         sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0.75;font-family:Mecaros;-inkscape-font-specification:Mecaros;text-align:end;text-anchor:end;stroke-width:0.264583"
-         x="84.989182"
-         y="92.173401"
-         id="tspan2">DAY</tspan></text>
+         x="87.661255"
+         y="96.738472"
+         id="tspan2">VISIONDAY</tspan></text>
   </g>
 </svg>

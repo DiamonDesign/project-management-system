@@ -127,3 +127,49 @@ All routes are defined in `src/App.tsx`. Two main route groups:
 - Real-time subscriptions available
 - Edge functions for complex server operations
 - Row Level Security (RLS) policies enforced
+
+## Button Icon Alignment Standards
+
+**Problem**: Icons in buttons can become misaligned, appearing above text instead of centered alongside it.
+
+**Root Cause**: Using flexbox with `gap` spacing and nested div containers with margin-based positioning (`mr-2`, `ml-auto`, etc.) creates inconsistent alignment.
+
+**Solution**: Use absolute positioning pattern for consistent icon-text alignment.
+
+### Standard Button Patterns
+
+**Left-side icons:**
+```tsx
+<Button className="relative pl-9 pr-3">
+  <IconComponent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+  <span>Button Text</span>
+</Button>
+```
+
+**Right-side icons:**
+```tsx
+<Button className="relative pl-3 pr-12">
+  <span>Button Text</span>
+  <IconComponent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+</Button>
+```
+
+**Key Requirements:**
+- Always use `relative` positioning on button container
+- Use `absolute` positioning for icons with `left-3`/`right-3` and `top-1/2 -translate-y-1/2`
+- Add `flex-shrink-0 pointer-events-none` to all icons
+- Wrap text content in `<span>` tags
+- Use `pl-9 pr-3` for left icons, `pl-3 pr-12` for right icons
+- Icon size should be `h-4 w-4` (or `w-5 h-5` for larger buttons)
+
+**Anti-patterns to avoid:**
+- ❌ Flexbox with `gap-3` and nested divs
+- ❌ Margin-based spacing (`mr-2`, `ml-auto`, `ml-2`)
+- ❌ Icons without absolute positioning
+- ❌ Missing `flex-shrink-0 pointer-events-none` on icons
+
+**Detection command:**
+```bash
+# Find buttons with potential alignment issues
+grep -r "mr-2\|ml-2\|ml-auto\|gap-.*>" src/components/ src/pages/
+```

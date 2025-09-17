@@ -91,8 +91,9 @@ export const InviteClientDialog = ({ client }: InviteClientDialogProps) => {
       }
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-2">
-          <Mail className="h-4 w-4 mr-2" /> Invitar al Portal
+        <Button variant="outline" size="sm" className="ml-2 relative pl-9 pr-3">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+          <span>Invitar al Portal</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -117,10 +118,11 @@ export const InviteClientDialog = ({ client }: InviteClientDialogProps) => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isInviting}>
+            <Button type="submit" className="w-full relative pl-9 pr-3" disabled={isInviting}>
               {isInviting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando invitación...
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin flex-shrink-0 pointer-events-none" />
+                  <span>Enviando invitación...</span>
                 </>
               ) : (
                 "Enviar Invitación"
@@ -134,8 +136,9 @@ export const InviteClientDialog = ({ client }: InviteClientDialogProps) => {
             <p className="text-sm font-medium mb-2">Enlace de Invitación Generado:</p>
             <div className="flex items-center space-x-2">
               <Input value={invitationLink} readOnly className="flex-1" />
-              <Button variant="secondary" size="sm" onClick={handleCopyLink}>
-                <Share2 className="h-4 w-4 mr-2" /> Copiar
+              <Button variant="secondary" size="sm" onClick={handleCopyLink} className="relative pl-9 pr-3">
+                <Share2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 flex-shrink-0 pointer-events-none" />
+                <span>Copiar</span>
               </Button>
             </div>
             {temporaryPassword && (

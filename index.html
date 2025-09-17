@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>FreelanceFlow - Gestión de Proyectos</title>
+    <title>Visionday - Gestión de Proyectos</title>
     <meta name="description" content="Aplicación de gestión de proyectos para freelancers y consultores con funcionalidades offline" />
     
     <!-- PWA Meta Tags -->
@@ -15,8 +15,9 @@
     
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="FreelanceFlow" />
+    <meta name="apple-mobile-web-app-title" content="Visionday" />
     <link rel="apple-touch-icon" href="/favicon.ico" />
     
     <!-- Microsoft PWA Meta Tags -->
@@ -25,12 +26,11 @@
     
     <!-- Security Meta Tags -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    
-    <!-- Development CSP - Allow inline scripts for Vite HMR -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws://localhost:* http://localhost:* https://api.supabase.io wss://realtime.supabase.io https://*.supabase.co wss://*.supabase.co; media-src 'none'; object-src 'none'; child-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self';" />
+
+    <!-- Development CSP - Allow inline scripts for Vite HMR and PWA service worker -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws://localhost:* http://localhost:* https://api.supabase.io wss://realtime.supabase.io https://*.supabase.co wss://*.supabase.co; media-src 'none'; object-src 'none'; worker-src 'self'; child-src 'none'; form-action 'self'; base-uri 'self';" />
     
     <!-- Emergency Error Protection - External Script -->
     <script src="/error-handler.js"></script>

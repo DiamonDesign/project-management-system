@@ -24,11 +24,10 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
+          <div className="flex items-center">
+            <div className="w-16 h-16 flex items-center justify-center">
+              <img src="/visionday_logo.svg" alt="Visionday" className="h-16 w-16 object-contain" />
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">FreelanceFlow</span>
           </div>
           <Link to="/login">
             <Button variant="outline" className="hidden sm:inline-flex">
@@ -58,14 +57,14 @@ const Landing = () => {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Link to="/login">
-            <Button size="lg" className="px-8 py-4 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-              Comenzar gratis
-              <ArrowRight className="ml-2 w-5 h-5" />
+            <Button size="lg" className="px-8 py-4 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 relative pl-3 pr-12">
+              <span>Comenzar gratis</span>
+              <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 pointer-events-none" />
             </Button>
           </Link>
-          <Button variant="ghost" size="lg" className="px-8 py-4 text-lg">
-            <PlayCircle className="mr-2 w-5 h-5" />
-            Ver demo
+          <Button variant="ghost" size="lg" className="px-8 py-4 text-lg relative pl-9 pr-3">
+            <PlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 pointer-events-none" />
+            <span>Ver demo</span>
           </Button>
         </div>
         
@@ -92,7 +91,7 @@ const Landing = () => {
             Todo lo que necesitas en una sola plataforma
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Desde la gestión de tareas hasta portales de cliente, FreelanceFlow tiene todas las herramientas 
+            Desde la gestión de tareas hasta portales de cliente, Visionday tiene todas las herramientas 
             que necesitas para hacer crecer tu negocio.
           </p>
         </div>
@@ -195,7 +194,7 @@ const Landing = () => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-              Freelancers y agencias ya confían en FreelanceFlow
+              Freelancers y agencias ya confían en Visionday
             </h3>
           </div>
           
@@ -231,7 +230,7 @@ const Landing = () => {
                   ))}
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  "Desde que uso FreelanceFlow, mi productividad aumentó un 40%. 
+                  "Desde que uso Visionday, mi productividad aumentó un 40%. 
                   Todo está organizado y es fácil de encontrar."
                 </p>
                 <div className="flex items-center">
@@ -280,14 +279,14 @@ const Landing = () => {
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-10">
             Únete a cientos de freelancers y agencias que ya han transformado 
-            su forma de trabajar con FreelanceFlow.
+            su forma de trabajar con Visionday.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Link to="/login">
-              <Button size="lg" className="px-8 py-4 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                Empezar ahora gratis
-                <ArrowRight className="ml-2 w-5 h-5" />
+              <Button size="lg" className="px-8 py-4 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 relative pl-3 pr-12">
+                <span>Empezar ahora gratis</span>
+                <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex-shrink-0 pointer-events-none" />
               </Button>
             </Link>
           </div>
@@ -313,15 +312,14 @@ const Landing = () => {
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-white" />
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="w-10 h-10 flex items-center justify-center">
+                <img src="/visionday_logo.svg" alt="Visionday" className="h-10 w-10 object-contain filter brightness-0 invert" />
               </div>
-              <span className="text-xl font-bold">FreelanceFlow</span>
             </div>
             
             <div className="flex items-center space-x-6 text-sm text-gray-400">
-              <span>© 2025 FreelanceFlow. Todos los derechos reservados.</span>
+              <span>© 2025 Visionday. Todos los derechos reservados.</span>
             </div>
           </div>
         </div>
