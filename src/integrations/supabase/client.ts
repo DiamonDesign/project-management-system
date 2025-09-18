@@ -11,6 +11,10 @@ console.error('🔍 DEBUG Using env vars?', !!import.meta.env.VITE_SUPABASE_URL)
 console.error('🔍 DEBUG Actual URL:', supabaseUrl);
 console.error('🔍 DEBUG Actual key length:', supabaseAnonKey?.length);
 
+// MARCA INEQUÍVOCA EN RUNTIME
+console.error('[SB-CLIENT] used-from', import.meta.url);
+(window as any).__SB_CLIENT_MARK__ = 'used';
+
 // Comprehensive validation function
 function validateSupabaseConfig() {
   const errors: string[] = [];
