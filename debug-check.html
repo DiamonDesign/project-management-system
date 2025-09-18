@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Check</title>
+</head>
+<body>
+    <h1>Direct Environment Check</h1>
+    <div id="output"></div>
+
+    <script>
+        // Direct check without import.meta.env
+        const output = document.getElementById('output');
+
+        // Check if we're in production
+        const isProd = window.location.hostname.includes('vercel.app');
+
+        output.innerHTML = `
+            <p><strong>Hostname:</strong> ${window.location.hostname}</p>
+            <p><strong>Is Production:</strong> ${isProd}</p>
+            <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+        `;
+
+        // Try to create headers with potentially problematic values
+        const testValues = [
+            '',
+            'undefined',
+            'null',
+            null,
+            undefined,
+            '\n',
+            '\r',
+            '\t',
+            ' ',
+            'Bearer ',
+            'Bearer undefined',
+            'Bearer null'
+        ];
+
+        testValues.forEach((value, i) => {
+            try {
+                const headers = new Headers();
+                headers.set('Authorization', value);
+                output.innerHTML += `<p style="color: green;">Test ${i}: OK with "${value}"</p>`;
+            } catch (error) {
+                output.innerHTML += `<p style="color: red;">Test ${i}: FAILED with "${value}" - ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
