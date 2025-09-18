@@ -18,9 +18,8 @@ interface SecureTipTapEditorProps {
 
 // Toolbar component
 const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
-  if (!editor) return null;
-
   const addLink = useCallback(() => {
+    if (!editor) return;
     const url = window.prompt('URL del enlace:');
     if (url) {
       // Sanitize URL
@@ -30,6 +29,7 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
   }, [editor]);
 
   const addImage = useCallback(() => {
+    if (!editor) return;
     const url = window.prompt('URL de la imagen:');
     if (url) {
       // Sanitize URL and add image
@@ -37,6 +37,8 @@ const EditorToolbar: React.FC<{ editor: Editor | null }> = ({ editor }) => {
       editor.chain().focus().setImage({ src: sanitizedUrl }).run();
     }
   }, [editor]);
+
+  if (!editor) return null;
 
   return (
     <div className="border-b bg-gray-50 p-2 flex gap-1 flex-wrap">

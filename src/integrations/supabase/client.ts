@@ -43,7 +43,7 @@ function validateSupabaseConfig() {
 // Validate configuration before creating client
 validateSupabaseConfig();
 
-// Create Supabase client with validated configuration
+// Create Supabase client with validated configuration and safe headers
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Enhanced auth configuration for production
@@ -52,5 +52,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     // Handle auth errors gracefully
     debug: import.meta.env.DEV // Only enable debug in development
+  },
+  global: {
+    // CRITICAL FIX: Prevent undefined headers that cause fetch errors in production
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    },
+    // Ensure fetch is the native browser fetch
+    fetch: fetch
   }
 });
