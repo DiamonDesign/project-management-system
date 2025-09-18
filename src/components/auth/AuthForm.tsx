@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 import { createClient } from "@supabase/supabase-js";
 import type { AuthError } from "@supabase/supabase-js";
 
-// PRUEBA INLINE - BYPASS IMPORTS
-const sbTest = createClient('https://nktdqpzxzouxcsvmijvt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk');
-sbTest.auth.getSession().then(r => console.error('[SB-TEST] inline client ok', !!r.data));
+// EVITAR ALIAS - CREAR CLIENTE DIRECTO SIN IMPORTS
+const supabase = createClient('https://nktdqpzxzouxcsvmijvt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk');
+console.error('[AUTH-FORM] Direct client created');
 
 type AuthMode = 'sign_in' | 'sign_up' | 'forgot_password';
 

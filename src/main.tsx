@@ -3,6 +3,9 @@ import App from "./App.tsx";
 import "./globals.css";
 import { BrowserRouter } from "react-router-dom"; // Import BrowserRouter
 import type { Session } from '@supabase/supabase-js';
+// FORZAR IMPORT VISIBLE
+import '@/integrations/supabase/client';
+console.error('[MAIN] boot');
 
 // Temporary debug for production - REMOVE AFTER FIXING
 if (import.meta.env.NODE_ENV === 'production') {

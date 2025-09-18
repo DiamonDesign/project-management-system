@@ -29,6 +29,7 @@ const Analytics = React.lazy(() => import("./pages/Analytics"));
 const ClientPortalInvite = React.lazy(() => import("./pages/ClientPortalInvite"));
 const ClientPortalDashboard = React.lazy(() => import("./pages/ClientPortalDashboard"));
 const AuthCallback = React.lazy(() => import("./pages/AuthCallback"));
+const EnvCheck = React.lazy(() => import("./pages/EnvCheck"));
 
 // Query client with optimized configuration
 const queryClient = new QueryClient({
@@ -137,6 +138,9 @@ const App = () => (
                     </RequireAuth>
                   } />
                 </Route>
+                <Route path="/env-check" element={
+                  <LazyRoute><EnvCheck /></LazyRoute>
+                } />
                 <Route path="*" element={
                   <LazyRoute><NotFound /></LazyRoute>
                 } />
