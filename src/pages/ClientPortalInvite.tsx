@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Loader2 } from "lucide-react";
 import { showError } from "@/utils/toast";
 import { useSession } from "@/hooks/useSession";
+import type { AuthError } from "@supabase/supabase-js";
 
 const ClientPortalInvite = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +16,15 @@ const ClientPortalInvite = () => {
   const { session, isLoading: isLoadingSession } = useSession();
   const [loading, setLoading] = useState(true);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+
+  const handleAuthError = (error: AuthError) => {
+    console.error('Client portal auth error:', error);
+    showError(`Error de autenticación: ${error.message}`);
+  };
+
+  const getRedirectUrl = () => {
+    return window.location.origin + "/client-portal/dashboard";
+  };
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -63,22 +72,9 @@ const ClientPortalInvite = () => {
           Has sido invitado a un portal de cliente. Por favor, inicia sesión con tu email y la contraseña temporal proporcionada por tu freelancer, o usa la opción "Olvidaste tu contraseña" si necesitas establecer una nueva.
         </p>
 
-        <Auth
-          supabaseClient={supabase}
-          providers={[]}
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: "hsl(var(--primary))",
-                  brandAccent: "hsl(var(--primary-foreground))",
-                },
-              },
-            },
-          }}
-          theme="light"
-          redirectTo={window.location.origin + "/client-portal/dashboard"}
+        <AuthForm
+          redirectTo={getRedirectUrl()}
+          onError={handleAuthError}
         />
       </div>
       <MadeWithDyad />

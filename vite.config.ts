@@ -66,9 +66,8 @@ export default defineConfig(() => ({
             'class-variance-authority'
           ],
           
-          // Authentication and backend - FIXED: Separate Supabase chunks properly
-          'supabase-core': ['@supabase/supabase-js'],
-          'supabase-auth-ui': ['@supabase/auth-ui-react', '@supabase/auth-ui-shared']
+          // Authentication and backend
+          'supabase': ['@supabase/supabase-js']
         },
         
         // Optimize chunk naming for better caching
