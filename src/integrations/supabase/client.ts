@@ -4,6 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// DEBUGGING: Check if vars are loaded correctly in production
+console.log('SB URL ok?', !!supabaseUrl, 'anon len', supabaseAnonKey?.length);
+console.log('fetch type', typeof fetch);
+
 // Comprehensive validation function
 function validateSupabaseConfig() {
   const errors: string[] = [];
@@ -43,23 +47,13 @@ function validateSupabaseConfig() {
 // Validate configuration before creating client
 validateSupabaseConfig();
 
-// Create Supabase client with validated configuration and safe headers
+// Create Supabase client with validated configuration (CLEAN VERSION)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Enhanced auth configuration for production
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    // Handle auth errors gracefully
-    debug: import.meta.env.DEV // Only enable debug in development
-  },
-  global: {
-    // CRITICAL FIX: Prevent undefined headers that cause fetch errors in production
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    },
-    // Ensure fetch is the native browser fetch
-    fetch: fetch
+    debug: import.meta.env.DEV
   }
+  // REMOVED: global.headers - not needed if env vars are correct
 });
