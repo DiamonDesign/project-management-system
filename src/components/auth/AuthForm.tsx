@@ -8,9 +8,16 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import type { AuthError } from "@supabase/supabase-js";
 
-// EVITAR ALIAS - CREAR CLIENTE DIRECTO SIN IMPORTS
-const supabase = createClient('https://nktdqpzxzouxcsvmijvt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk');
-console.error('[AUTH-FORM] Direct client created');
+// PROTECTION: Store original fetch for Supabase
+const originalFetch = window.fetch;
+
+// CREAR CLIENTE DIRECTO CON PROTECCIÓN CONTRA EXTENSIONES
+const supabase = createClient('https://nktdqpzxzouxcsvmijvt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk', {
+  global: {
+    fetch: originalFetch
+  }
+});
+console.error('[AUTH-FORM] Protected client created');
 
 type AuthMode = 'sign_in' | 'sign_up' | 'forgot_password';
 
