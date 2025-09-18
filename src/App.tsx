@@ -28,6 +28,7 @@ const Profile = React.lazy(() => import("./pages/Profile"));
 const Analytics = React.lazy(() => import("./pages/Analytics"));
 const ClientPortalInvite = React.lazy(() => import("./pages/ClientPortalInvite"));
 const ClientPortalDashboard = React.lazy(() => import("./pages/ClientPortalDashboard"));
+const AuthCallback = React.lazy(() => import("./pages/AuthCallback"));
 
 // Query client with optimized configuration
 const queryClient = new QueryClient({
@@ -77,6 +78,9 @@ const App = () => (
                 } />
                 <Route path="/login" element={
                   <LazyRoute><Login /></LazyRoute>
+                } />
+                <Route path="/auth/callback" element={
+                  <LazyRoute><AuthCallback /></LazyRoute>
                 } />
                 <Route path="/client-portal/invite" element={
                   <LazyRoute><ClientPortalInvite /></LazyRoute>
