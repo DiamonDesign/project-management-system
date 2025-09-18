@@ -86,18 +86,18 @@ export async function withAuth<T>(
  */
 export async function ensureAuthenticatedRequest() {
   const { session, isAuthenticated } = await validateSession();
-  
-  if (!isAuthenticated || !session) {
+
+  if (!isAuthenticated || !session?.access_token) {
     throw new Error('Authentication required');
   }
 
-  // Set explicit Authorization header for this request
-  return {
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      apikey: supabase.supabaseKey
-    }
-  };
+  // Validate token before header construction
+  if (!session.access_token || session.access_token.trim() === '') {
+    throw new Error('Invalid access token');
+  }
+
+  // Use Supabase client directly - no manual headers
+  return { session };
 }
 
 /**

@@ -339,32 +339,32 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     try {
       setIsSigningOut(true);
 
-      // Check if there's a session before attempting signOut
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-
-      if (currentSession) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error("Error during signOut:", error);
-          // Don't throw error, just log it and continue with local cleanup
-        }
-      } else {
-        console.log("No active session found, proceeding with local cleanup");
-      }
-
-      // Always clear local state regardless of signOut success
+      // Clear local state first
       setSession(null);
       setUser(null);
+
+      // Then attempt Supabase signOut with timeout
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SignOut timeout')), 3000)
+      );
+
+      try {
+        const { error } = await Promise.race([signOutPromise, timeoutPromise]) as { error: any };
+        if (error) {
+          console.warn("SignOut API error (non-critical):", error);
+        }
+      } catch (timeoutError) {
+        console.warn("SignOut timeout - continuing with navigation");
+      }
 
       showSuccess("Has cerrado sesión correctamente.");
       navigate('/login');
     } catch (error: unknown) {
-      // Even if signOut fails, clear local state and redirect
-      console.error("Error signing out:", error);
-      setSession(null);
-      setUser(null);
+      console.error("SignOut error:", error);
+      // State already cleared, just navigate
       navigate('/login');
-      showSuccess("Sesión cerrada localmente.");
+      showSuccess("Sesión cerrada.");
     } finally {
       setIsSigningOut(false);
     }
