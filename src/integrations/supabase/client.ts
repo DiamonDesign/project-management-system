@@ -15,18 +15,34 @@ console.error('🔍 DEBUG Actual key length:', supabaseAnonKey?.length);
 console.error('[SB-CLIENT] used-from', import.meta.url);
 (window as any).__SB_CLIENT_MARK__ = 'used';
 
-// COMPREHENSIVE PROTECTION: Store original fetch AND Headers before extensions can override them
-const originalFetch = window.fetch;
-const originalHeaders = window.Headers;
-const originalRequest = window.Request;
-const originalResponse = window.Response;
+// DEFINITIVE PROTECTION: Use early-captured clean APIs or fallback to current
+const getCleanAPIs = () => {
+  if (typeof window !== 'undefined' && window.__CLEAN_APIS__ && window.__PROTECTION_ACTIVE__) {
+    console.error('[SB-CLIENT] Using early-protected clean APIs');
+    console.error('[SB-CLIENT] Protection timestamp:', window.__PROTECTION_TIMESTAMP__);
+    return {
+      fetch: window.__CLEAN_APIS__.fetch,
+      Headers: window.__CLEAN_APIS__.Headers,
+      Request: window.__CLEAN_APIS__.Request,
+      Response: window.__CLEAN_APIS__.Response
+    };
+  } else {
+    console.error('[SB-CLIENT] FALLBACK: Early protection not available, using current APIs');
+    console.error('[SB-CLIENT] Protection status:', {
+      cleanAPIs: !!window.__CLEAN_APIS__,
+      protectionActive: !!window.__PROTECTION_ACTIVE__,
+      protectionFailed: !!window.__PROTECTION_FAILED__
+    });
+    return {
+      fetch: window.fetch,
+      Headers: window.Headers,
+      Request: window.Request,
+      Response: window.Response
+    };
+  }
+};
 
-if (typeof originalFetch === 'function') {
-  console.error('[SB-CLIENT] Protected fetch stored');
-}
-if (typeof originalHeaders === 'function') {
-  console.error('[SB-CLIENT] Protected Headers stored');
-}
+const cleanAPIs = getCleanAPIs();
 
 // Comprehensive validation function
 function validateSupabaseConfig() {
@@ -67,7 +83,7 @@ function validateSupabaseConfig() {
 // Validate configuration before creating client
 validateSupabaseConfig();
 
-// Create Supabase client with validated configuration and comprehensive extension protection
+// Create Supabase client with validated configuration and definitive extension protection
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -76,10 +92,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     debug: import.meta.env.DEV
   },
   global: {
-    // COMPREHENSIVE PROTECTION: Use original fetch, Headers, Request, Response to bypass extension interference
-    fetch: originalFetch,
-    Headers: originalHeaders,
-    Request: originalRequest,
-    Response: originalResponse
+    // DEFINITIVE PROTECTION: Use early-captured clean APIs to bypass ALL extension interference
+    fetch: cleanAPIs.fetch,
+    Headers: cleanAPIs.Headers,
+    Request: cleanAPIs.Request,
+    Response: cleanAPIs.Response
   }
+});
+
+// Verification logging
+console.error('[SB-CLIENT] Supabase client created with APIs:', {
+  fetch: typeof cleanAPIs.fetch,
+  Headers: typeof cleanAPIs.Headers,
+  Request: typeof cleanAPIs.Request,
+  Response: typeof cleanAPIs.Response,
+  protectionSource: window.__PROTECTION_ACTIVE__ ? 'early-capture' : 'fallback'
 });

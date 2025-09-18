@@ -34,6 +34,42 @@
     
     <!-- Emergency Error Protection - External Script -->
     <script src="/error-handler.js"></script>
+
+    <!-- CRITICAL: Early API Protection - Must execute BEFORE any other scripts -->
+    <script>
+      // IMMEDIATE CAPTURE of clean browser APIs before extension interference
+      (function() {
+        try {
+          console.error('[EARLY-PROTECTION] Capturing clean APIs at page load...');
+
+          // Store pristine APIs immediately at page load
+          window.__CLEAN_APIS__ = {
+            fetch: window.fetch?.bind(window),
+            Headers: window.Headers,
+            Request: window.Request,
+            Response: window.Response,
+            XMLHttpRequest: window.XMLHttpRequest
+          };
+
+          // Verify capture success
+          const captured = Object.keys(window.__CLEAN_APIS__).filter(key =>
+            typeof window.__CLEAN_APIS__[key] === 'function'
+          );
+
+          console.error('[EARLY-PROTECTION] Successfully captured:', captured.join(', '));
+          console.error('[EARLY-PROTECTION] Fetch type at capture:', typeof window.fetch);
+          console.error('[EARLY-PROTECTION] Headers type at capture:', typeof window.Headers);
+
+          // Mark protection as active
+          window.__PROTECTION_ACTIVE__ = true;
+          window.__PROTECTION_TIMESTAMP__ = Date.now();
+
+        } catch (error) {
+          console.error('[EARLY-PROTECTION] Failed to capture APIs:', error);
+          window.__PROTECTION_FAILED__ = true;
+        }
+      })();
+    </script>
   </head>
 
   <body>
