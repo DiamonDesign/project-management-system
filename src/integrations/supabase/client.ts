@@ -3,8 +3,25 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
+// Strict validation to prevent invalid header values
+if (!supabaseUrl || typeof supabaseUrl !== 'string' || supabaseUrl.trim() === '') {
+  throw new Error("Invalid VITE_SUPABASE_URL environment variable");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string' || supabaseAnonKey.trim() === '') {
+  throw new Error("Invalid VITE_SUPABASE_ANON_KEY environment variable");
+}
+
+// Additional validation for URL format
+try {
+  new URL(supabaseUrl);
+} catch {
+  throw new Error("VITE_SUPABASE_URL is not a valid URL");
+}
+
+// Additional validation for JWT format (basic check)
+if (!supabaseAnonKey.startsWith('eyJ')) {
+  throw new Error("VITE_SUPABASE_ANON_KEY does not appear to be a valid JWT");
+}
+
+export const supabase = createClient(supabaseUrl.trim(), supabaseAnonKey.trim());
