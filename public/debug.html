@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Environment</title>
+</head>
+<body>
+    <h1>Environment Debug</h1>
+    <div id="info"></div>
+
+    <script type="module">
+        const info = {
+            url: import.meta.env.VITE_SUPABASE_URL,
+            keyExists: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+            keyLength: import.meta.env.VITE_SUPABASE_ANON_KEY?.length,
+            keyPreview: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 50) + '...',
+            urlLength: import.meta.env.VITE_SUPABASE_URL?.length,
+            mode: import.meta.env.MODE,
+            nodeEnv: import.meta.env.NODE_ENV
+        };
+
+        document.getElementById('info').innerHTML = '<pre>' + JSON.stringify(info, null, 2) + '</pre>';
+
+        // Test si los valores son válidos para headers HTTP
+        try {
+            const testHeaders = new Headers();
+            testHeaders.set('Authorization', `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`);
+            testHeaders.set('apikey', import.meta.env.VITE_SUPABASE_ANON_KEY);
+            document.getElementById('info').innerHTML += '<p style="color: green;">✅ Headers test passed</p>';
+        } catch (error) {
+            document.getElementById('info').innerHTML += '<p style="color: red;">❌ Headers test failed: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html>
