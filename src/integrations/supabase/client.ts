@@ -15,10 +15,17 @@ console.error('🔍 DEBUG Actual key length:', supabaseAnonKey?.length);
 console.error('[SB-CLIENT] used-from', import.meta.url);
 (window as any).__SB_CLIENT_MARK__ = 'used';
 
-// PROTECTION: Store original fetch before extensions can override it
+// COMPREHENSIVE PROTECTION: Store original fetch AND Headers before extensions can override them
 const originalFetch = window.fetch;
+const originalHeaders = window.Headers;
+const originalRequest = window.Request;
+const originalResponse = window.Response;
+
 if (typeof originalFetch === 'function') {
   console.error('[SB-CLIENT] Protected fetch stored');
+}
+if (typeof originalHeaders === 'function') {
+  console.error('[SB-CLIENT] Protected Headers stored');
 }
 
 // Comprehensive validation function
@@ -60,7 +67,7 @@ function validateSupabaseConfig() {
 // Validate configuration before creating client
 validateSupabaseConfig();
 
-// Create Supabase client with validated configuration and extension protection
+// Create Supabase client with validated configuration and comprehensive extension protection
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -69,7 +76,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     debug: import.meta.env.DEV
   },
   global: {
-    // PROTECTION: Use original fetch to bypass extension interference
-    fetch: originalFetch
+    // COMPREHENSIVE PROTECTION: Use original fetch, Headers, Request, Response to bypass extension interference
+    fetch: originalFetch,
+    Headers: originalHeaders,
+    Request: originalRequest,
+    Response: originalResponse
   }
 });
