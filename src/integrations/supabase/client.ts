@@ -1,12 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Environment variable validation with detailed error messages
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// TEMPORARY FIX: Hardcode values to bypass Vercel env var issue
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://nktdqpzxzouxcsvmijvt.supabase.co";
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk";
 
 // DEBUGGING: Check if vars are loaded correctly in production
 console.log('SB URL ok?', !!supabaseUrl, 'anon len', supabaseAnonKey?.length);
 console.log('fetch type', typeof fetch);
+console.log('Using env vars?', !!import.meta.env.VITE_SUPABASE_URL);
 
 // Comprehensive validation function
 function validateSupabaseConfig() {
