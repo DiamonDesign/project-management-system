@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+
+// PROTECTION: Store original fetch for Supabase to prevent extension interference
+const originalFetch = window.fetch;
+
+// Create protected Supabase client for SessionContext
+const supabase = createClient('https://nktdqpzxzouxcsvmijvt.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGRxcHp4em91eGNzdm1panZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNzQ0MjMsImV4cCI6MjA3Mjg1MDQyM30.9-wSc9vwUOvWPzQl88mxIT0RwgVDm20GUedP9enI3Jk', {
+  global: {
+    fetch: originalFetch
+  }
+});
+console.error('[SESSION-CONTEXT] Protected Supabase client created');
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "@/utils/toast";
 import type { AppError } from "@/types";
