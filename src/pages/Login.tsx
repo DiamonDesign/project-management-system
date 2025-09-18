@@ -30,6 +30,35 @@ const Login = () => {
       }
     });
 
+    // Listen for auth errors and handle them gracefully
+    const handleAuthError = (error: any) => {
+      console.error('Auth error caught:', error);
+      if (error?.message?.includes('Invalid value')) {
+        setAuthMessage({
+          type: 'error',
+          message: 'Error de configuración. Por favor contacta al administrador.'
+        });
+      } else if (error?.message?.includes('Invalid login credentials')) {
+        setAuthMessage({
+          type: 'error',
+          message: 'Credenciales incorrectas. Verifica tu email y contraseña.'
+        });
+      } else if (error?.message?.includes('Email not confirmed')) {
+        setAuthMessage({
+          type: 'info',
+          message: 'Por favor confirma tu email antes de iniciar sesión.'
+        });
+      }
+    };
+
+    // Global error handler for unhandled auth errors
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason?.message?.includes('fetch') || event.reason?.message?.includes('Invalid value')) {
+        event.preventDefault(); // Prevent console spam
+        handleAuthError(event.reason);
+      }
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 

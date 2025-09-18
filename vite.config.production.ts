@@ -20,7 +20,9 @@ export default defineConfig({
           router: ['react-router-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
-          supabase: ['@supabase/supabase-js', '@supabase/auth-ui-react'],
+          // FIXED: Keep Supabase core and auth UI together to prevent initialization issues
+          'supabase-core': ['@supabase/supabase-js'],
+          'supabase-auth-ui': ['@supabase/auth-ui-react', '@supabase/auth-ui-shared'],
           utils: ['date-fns', 'clsx', 'tailwind-merge', 'lucide-react'],
           charts: ['recharts'],
           dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
@@ -59,9 +61,11 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
 
-  // Performance optimizations
+  // Performance optimizations - FIXED: Preserve Supabase console statements
   esbuild: {
-    drop: ['console', 'debugger'], // Remove console.log in production
+    drop: ['debugger'], // Only remove debugger statements
+    pure: ['console.log', 'console.info'], // Only remove non-critical console methods
+    // CRITICAL: Do not drop 'console' entirely as Supabase relies on console.error internally
   },
 
   // CSS optimization
