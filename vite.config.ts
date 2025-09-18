@@ -66,8 +66,9 @@ export default defineConfig(() => ({
             'class-variance-authority'
           ],
           
-          // Authentication and backend
-          'auth': ['@supabase/supabase-js']
+          // Authentication and backend - FIXED: Separate Supabase chunks properly
+          'supabase-core': ['@supabase/supabase-js'],
+          'supabase-auth-ui': ['@supabase/auth-ui-react', '@supabase/auth-ui-shared']
         },
         
         // Optimize chunk naming for better caching
@@ -83,7 +84,7 @@ export default defineConfig(() => ({
       }
     },
     
-    // Enable aggressive minification
+    // Enable aggressive minification - FIXED: Preserve Supabase console statements
     minify: 'terser',
     terserOptions: {
       compress: {
