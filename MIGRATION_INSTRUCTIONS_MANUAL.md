@@ -24,7 +24,19 @@
 3. Selecciona tu proyecto: `nktdqpzxzouxcsvmijvt`
 4. Ve a **SQL Editor** en el menú lateral
 
-### PASO 2: Ejecutar Scripts de Migración en Orden
+### PASO 2A: OPCIÓN RÁPIDA (RECOMENDADA)
+
+**Si solo quieres que funcione rápidamente:**
+
+```sql
+-- Ejecuta este script único: scripts/quick-migration-fix.sql
+-- Crea la tabla tasks directamente sin migración de datos
+-- ✅ Más simple y seguro
+```
+
+### PASO 2B: MIGRACIÓN COMPLETA (Para proyectos con datos existentes)
+
+**Para migrar datos existentes de JSON a tabla relacional:**
 
 **⚠️ IMPORTANTE:** Ejecuta estos scripts EN EL ORDEN EXACTO indicado.
 
@@ -111,6 +123,17 @@ node scripts/run-migration.js
 
 **Scripts afectados:**
 - `execute-task-migration.sql` (ya corregido)
+
+### Error: "Migration validation failed - check results above"
+
+**Causa:** Las funciones de migración no están creadas porque los scripts previos no se ejecutaron.
+
+**Solución Rápida:**
+1. Ejecuta `scripts/quick-migration-fix.sql` - Crea tabla tasks directamente
+2. O sigue el orden completo: schema → backup → migration
+
+**Scripts para diagnosticar:**
+- `scripts/migration-diagnosis.sql` - Muestra qué falta exactamente
 
 ### Error: "relation does not exist"
 
