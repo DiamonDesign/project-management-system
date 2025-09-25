@@ -9,7 +9,7 @@ import { PAGE_TYPE_CONFIG, type Page, type PageType } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
 import { SecureTipTapEditor } from './SecureTipTapEditor';
-import { ComponentErrorBoundary } from "./ErrorBoundary";
+import { ComponentErrorBoundary } from "./ErrorBoundary/";
 import {
   AlertDialog,
   AlertDialogAction,

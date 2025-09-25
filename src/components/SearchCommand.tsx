@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ComponentErrorBoundary } from './ErrorBoundary';
+import { ComponentErrorBoundary } from './ErrorBoundary/';
 import {
   CommandDialog,
   CommandEmpty,

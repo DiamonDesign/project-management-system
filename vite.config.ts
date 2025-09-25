@@ -8,7 +8,7 @@ export default defineConfig(() => ({
     port: 5173,
     strictPort: false,
     hmr: {
-      port: 5174
+      port: 0  // Use dynamic port allocation to avoid conflicts
     }
   },
   plugins: [react()],
@@ -91,7 +91,7 @@ export default defineConfig(() => ({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console.error for error handling
+        drop_console: true, // Keep console.error for error handling
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info'], // Only remove non-critical console methods
         passes: 2 // Multiple compression passes

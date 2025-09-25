@@ -13,7 +13,7 @@ import {
   MouseSensor,
   useDroppable,
 } from '@dnd-kit/core';
-import { ComponentErrorBoundary } from './ErrorBoundary';
+import { ComponentErrorBoundary } from './ErrorBoundary/';
 import {
   SortableContext,
   verticalListSortingStrategy,

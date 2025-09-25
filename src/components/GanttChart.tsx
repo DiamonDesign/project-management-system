@@ -3,7 +3,7 @@ import { Task, Project } from '@/types/shared';
 import { format, differenceInDays, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ComponentErrorBoundary } from './ErrorBoundary';
+import { ComponentErrorBoundary } from './ErrorBoundary/';
 
 interface GanttChartProps {
   projects: Project[];

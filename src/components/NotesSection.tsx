@@ -7,7 +7,7 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
 import { Input } from "@/components/ui/input";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
-import { ComponentErrorBoundary } from "./ErrorBoundary";
+import { ComponentErrorBoundary } from "./ErrorBoundary/";
 
 // Lazy load the heavy TipTap editor to reduce bundle size
 const SecureTipTapEditor = React.lazy(() => import('./SecureTipTapEditor').then(module => ({ default: module.SecureTipTapEditor })));
