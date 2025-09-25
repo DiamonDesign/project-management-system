@@ -11,6 +11,8 @@
 
 **IMPACTO:** La funcionalidad de tareas está completamente no operativa.
 
+**🔧 ÚLTIMA ACTUALIZACIÓN:** Script de migración corregido - eliminada ambigüedad de variable `current_version`.
+
 ---
 
 ## 🎯 SOLUCIÓN: MIGRACIÓN MANUAL EN SUPABASE DASHBOARD
@@ -42,6 +44,8 @@
 ```sql
 -- Ejecutar tercero: scripts/execute-task-migration.sql
 -- Copia y pega el contenido completo del archivo
+-- NOTA: Si obtienes error "column reference current_version is ambiguous"
+-- usa la versión corregida del script que resuelve la ambigüedad de variables
 ```
 
 #### Script 4: Optimización Post-Migración
@@ -92,6 +96,30 @@ SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_aqui
 ```bash
 node scripts/run-migration.js
 ```
+
+---
+
+## 🛠️ SOLUCIÓN DE PROBLEMAS COMUNES
+
+### Error: "column reference current_version is ambiguous"
+
+**Causa:** Conflicto entre variable PL/pgSQL y nombre de columna en el script de migración.
+
+**Solución:**
+1. El error ha sido corregido en la versión actual del script
+2. Si usas una versión anterior, reemplaza todas las instancias de la variable `current_version` por `schema_version_val` en el script de migración
+
+**Scripts afectados:**
+- `execute-task-migration.sql` (ya corregido)
+
+### Error: "relation does not exist"
+
+**Causa:** Los scripts deben ejecutarse en el orden exacto indicado.
+
+**Solución:**
+1. Ejecuta primero `task-normalization-schema.sql`
+2. Luego `migration-backup-strategy.sql`
+3. Finalmente `execute-task-migration.sql`
 
 ---
 

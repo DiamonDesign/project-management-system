@@ -9,16 +9,16 @@
 
 DO $$
 DECLARE
-    current_version TEXT;
+    schema_version_val TEXT;
     task_count INTEGER;
     project_count INTEGER;
     disk_space_mb INTEGER;
 BEGIN
     -- Check current schema version
-    SELECT current_version INTO current_version FROM schema_version;
+    SELECT current_version INTO schema_version_val FROM schema_version;
     
-    IF current_version < '1.3.0' THEN
-        RAISE EXCEPTION 'Schema version % is too old. Please run task-normalization-schema.sql first', current_version;
+    IF schema_version_val < '1.3.0' THEN
+        RAISE EXCEPTION 'Schema version % is too old. Please run task-normalization-schema.sql first', schema_version_val;
     END IF;
     
     -- Count existing tasks in JSON format
@@ -36,7 +36,7 @@ BEGIN
     END IF;
     
     RAISE NOTICE 'Pre-migration validation passed:';
-    RAISE NOTICE '- Schema version: %', current_version;
+    RAISE NOTICE '- Schema version: %', schema_version_val;
     RAISE NOTICE '- Tasks to migrate: %', task_count;
     RAISE NOTICE '- Projects with tasks: %', project_count;
 END;
