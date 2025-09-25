@@ -1,21 +1,24 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useSession } from "@/hooks/useSession";
 import { Navigate } from "react-router-dom";
-import { useProjectContext, Task } from "@/context/ProjectContext";
+import { useProjectContext } from "@/context/ProjectContext";
+import { useTaskContext } from "@/context/TaskContext";
+import { Task } from "@/types/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TaskCard } from "@/components/TaskCard";
 // Drag and drop functionality now handled by TaskBoard component
 import { GanttChart } from "@/components/GanttChart";
-import { showSuccess, showError } from "@/utils/toast";
+import { showSuccess } from "@/utils/toast";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
 
 const Tasks = () => {
   const { session, isLoading: isLoadingSession } = useSession();
-  const { projects, isLoadingProjects, updateProject, updateTaskStatus, updateTaskDailyStatus, deleteTaskFromProject, updateTask } = useProjectContext();
+  const { projects, isLoadingProjects } = useProjectContext();
+  const { tasks, updateTaskStatus, updateTaskDailyStatus, deleteTask, updateTask } = useTaskContext();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   if (isLoadingSession || isLoadingProjects) {
@@ -30,30 +33,26 @@ const Tasks = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Aplanar todas las tareas y añadir projectName y projectId
-  const allTasksWithProjectInfo: (Task & { projectName: string; projectId: string })[] = projects.flatMap(project =>
-    project.tasks.map(task => ({ ...task, projectName: project.name, projectId: project.id }))
-  );
+  // Las tareas ya vienen con projectName del TaskContext
+  const nonDailyTasks = tasks.filter(task => !task.is_daily_task);
+  const dailyTasks = tasks.filter(task => task.is_daily_task);
 
-  const nonDailyTasks = allTasksWithProjectInfo.filter(task => !task.is_daily_task);
-  const dailyTasks = allTasksWithProjectInfo.filter(task => task.is_daily_task);
-
-  const handleEditTask = (projectId: string, taskId: string, updatedFields: Partial<Task>) => {
-    updateTask(projectId, taskId, updatedFields);
+  const handleEditTask = (taskId: string, updatedFields: Partial<Task>) => {
+    updateTask(taskId, updatedFields);
     showSuccess("Tarea actualizada.");
   };
 
-  const handleDeleteTask = (projectId: string, taskId: string) => {
-    deleteTaskFromProject(projectId, taskId);
+  const handleDeleteTask = (taskId: string) => {
+    deleteTask(taskId);
   };
 
-  const handleUpdateTaskStatus = (projectId: string, taskId: string, newStatus: Task['status']) => {
-    updateTaskStatus(projectId, taskId, newStatus);
+  const handleUpdateTaskStatus = (taskId: string, newStatus: Task['status']) => {
+    updateTaskStatus(taskId, newStatus);
   };
 
   // Drag & drop removed - using TaskBoard component for drag functionality in project details
 
-  const renderTaskListColumn = (tasks: (Task & { projectName: string; projectId: string })[], listId: string, title: string) => (
+  const renderTaskListColumn = (tasks: Task[], listId: string, title: string) => (
     <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>{title} ({tasks.length})</CardTitle>
@@ -66,8 +65,9 @@ const Tasks = () => {
             <div className="space-y-3">
               {tasks.map((task) => (
                 <TaskCard
+                  key={task.id}
                   task={task}
-                  projectId={task.projectId}
+                  projectId={task.projectId || ''}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                   onUpdateStatus={handleUpdateTaskStatus}

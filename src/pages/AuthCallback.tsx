@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 const AuthCallback = () => {
   const [loading, setLoading] = useState(true);
@@ -13,13 +14,13 @@ const AuthCallback = () => {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('Auth callback error:', error);
+          logger.auth('Auth callback error', error);
           setError(error.message);
         }
 
         setLoading(false);
       } catch (err) {
-        console.error('Unexpected error in auth callback:', err);
+        logger.auth('Unexpected error in auth callback', err);
         setError('Ha ocurrido un error inesperado');
         setLoading(false);
       }

@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ComponentErrorBoundary } from "./ErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
@@ -14,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Task } from "@/context/ProjectContext";
+import { Task } from "@/types/shared";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PROJECT_TYPE_CONFIG, ProjectType } from "@/types";
 import {
@@ -44,7 +45,7 @@ interface ProjectCardProps {
     status: 'pending' | 'in-progress' | 'completed';
     project_type?: ProjectType;
     dueDate?: string;
-    tasks: Task[]; // Usar la interfaz Task actualizada
+    tasks?: Task[]; // Usar la interfaz Task actualizada - opcional para SimpleProject
     archived?: boolean;
   };
   variant?: 'card' | 'list';
@@ -83,18 +84,11 @@ const getStatusLabel = (status: string) => {
 
 const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onView, onArchive }: ProjectCardProps) => {
   const isMobile = useIsMobile();
-  const completedTasks = React.useMemo(
-    () => project.tasks.filter(task => task.status === 'completed').length,
-    [project.tasks]
-  );
-  
-  const totalTasks = project.tasks.length;
-  const progressPercentage = React.useMemo(
-    () => totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
-    [completedTasks, totalTasks]
-  );
-
-  const statusInfo = React.useMemo(() => getStatusVariant(project.status, project.dueDate), [project.status, project.dueDate]);
+  // Simple calculations - no memoization needed for fast operations
+  const completedTasks = project.tasks ? project.tasks.filter(task => task.status === 'completed').length : 0;
+  const totalTasks = project.tasks ? project.tasks.length : 0;
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const statusInfo = getStatusVariant(project.status, project.dueDate);
   const StatusIcon = statusInfo.icon;
   
   const isOverdue = project.dueDate && isBefore(new Date(project.dueDate), new Date());
@@ -278,16 +272,17 @@ const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onV
   }
 
   const cardContent = (
-    <Card 
-      hover 
-      interactive
-      className={cn(
-        "w-full max-w-sm h-full flex flex-col group animate-fade-in",
-        "hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300",
-        isOverdue && "ring-2 ring-destructive/20 border-destructive/30",
-        isDueSoon && "ring-2 ring-warning/20 border-warning/30"
-      )}
-    >
+    <ComponentErrorBoundary>
+      <Card
+        hover
+        interactive
+        className={cn(
+          "w-full max-w-sm h-full flex flex-col group animate-fade-in",
+          "hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300",
+          isOverdue && "ring-2 ring-destructive/20 border-destructive/30",
+          isDueSoon && "ring-2 ring-warning/20 border-warning/30"
+        )}
+      >
       <CardHeader compact className="flex-grow relative">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -423,7 +418,8 @@ const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onV
       
       {/* Hover Glow Effect */}
       <div className="absolute inset-0 rounded-[inherit] bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-    </Card>
+      </Card>
+    </ComponentErrorBoundary>
   );
 
   // Wrap with SwipeableCard on mobile, return regular card on desktop
@@ -440,26 +436,5 @@ const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onV
   );
 };
 
-// Memoized export for performance with enhanced comparison
-export const ProjectCard = React.memo(ProjectCardComponent, (prevProps, nextProps) => {
-  const prevProject = prevProps.project;
-  const nextProject = nextProps.project;
-  
-  // Deep comparison for better accuracy
-  return (
-    prevProject.id === nextProject.id &&
-    prevProject.name === nextProject.name &&
-    prevProject.description === nextProject.description &&
-    prevProject.status === nextProject.status &&
-    prevProject.project_type === nextProject.project_type &&
-    prevProject.dueDate === nextProject.dueDate &&
-    prevProject.tasks.length === nextProject.tasks.length &&
-    prevProject.tasks.every((task, index) => {
-      const nextTask = nextProject.tasks[index];
-      return nextTask && 
-        task.id === nextTask.id &&
-        task.status === nextTask.status &&
-        task.title === nextTask.title;
-    })
-  );
-});
+// Simple memoization - let React handle shallow comparison efficiently
+export const ProjectCard = React.memo(ProjectCardComponent);

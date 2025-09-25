@@ -1,0 +1,76 @@
+{
+  "environment": "production",
+  "app": {
+    "url": "https://visionday.app",
+    "port": 80,
+    "debug": false,
+    "logLevel": "warn",
+    "cors": {
+      "origins": [
+        "https://visionday.app",
+        "https://www.visionday.app",
+        "https://api.visionday.app"
+      ]
+    }
+  },
+  "database": {
+    "ssl": true,
+    "poolSize": 20
+  },
+  "security": {
+    "sessionTimeout": 1800,
+    "rateLimiting": {
+      "windowMs": 900000,
+      "maxRequests": 50
+    }
+  },
+  "services": {
+    "sentry": {
+      "environment": "production",
+      "sampleRate": 0.1
+    },
+    "monitoring": {
+      "enabled": true
+    }
+  },
+  "features": {
+    "analytics": true,
+    "notifications": true,
+    "collaboration": true,
+    "advancedReports": true,
+    "aiAssistant": true,
+    "apiV2": true
+  },
+  "performance": {
+    "caching": {
+      "enabled": true,
+      "ttl": 7200,
+      "maxSize": 1073741824
+    },
+    "compression": {
+      "enabled": true,
+      "level": 9
+    },
+    "cdn": {
+      "enabled": true,
+      "baseUrl": "https://cdn.visionday.app",
+      "regions": [
+        "us-east-1",
+        "us-west-2",
+        "eu-west-1",
+        "eu-central-1",
+        "ap-southeast-1",
+        "ap-northeast-1"
+      ]
+    }
+  },
+  "deployment": {
+    "strategy": "blue-green",
+    "healthCheck": {
+      "timeout": 3000
+    },
+    "rollback": {
+      "threshold": 0.01
+    }
+  }
+}

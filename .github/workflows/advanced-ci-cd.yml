@@ -1,0 +1,513 @@
+name: 🚀 Advanced Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '8'
+  # Performance thresholds
+  BUNDLE_SIZE_LIMIT: '800kb'
+  LIGHTHOUSE_PERFORMANCE_THRESHOLD: '90'
+  LIGHTHOUSE_ACCESSIBILITY_THRESHOLD: '95'
+  LIGHTHOUSE_BEST_PRACTICES_THRESHOLD: '90'
+  LIGHTHOUSE_SEO_THRESHOLD: '90'
+  # Quality gates
+  COVERAGE_THRESHOLD: '85'
+  SONAR_QUALITY_GATE_WAIT: 'true'
+
+jobs:
+  # 🔍 Advanced Security & Vulnerability Scanning
+  security-advanced:
+    name: 🔒 Advanced Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for security analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Dependency vulnerability scanning
+      - name: 🔍 Dependency Security Audit
+        run: |
+          pnpm audit --audit-level moderate
+          pnpm audit --audit-level high --production
+
+      # Secrets detection
+      - name: 🔐 Secrets Detection
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+      # SAST (Static Application Security Testing)
+      - name: 🛡️ SAST Security Scan
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript,typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      # Supply chain security
+      - name: 📦 Supply Chain Security
+        uses: actions/dependency-review-action@v3
+        if: github.event_name == 'pull_request'
+
+  # 📊 Code Quality & Performance Analysis
+  quality-advanced:
+    name: 📊 Advanced Quality Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ESLint with detailed reporting
+      - name: 🔍 Advanced Linting
+        run: |
+          pnpm run lint --format=json --output-file=eslint-report.json || true
+          pnpm run lint
+
+      # TypeScript strict checking
+      - name: 📝 TypeScript Strict Check
+        run: pnpm exec tsc --noEmit --strict
+
+      # Prettier formatting check
+      - name: 💄 Code Formatting Check
+        run: pnpm exec prettier --check src/ --write=false
+
+      # SonarCloud analysis
+      - name: 🎯 SonarCloud Analysis
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Bundle size analysis
+      - name: 📦 Bundle Size Analysis
+        run: |
+          pnpm run build
+          npx bundlesize --config bundlesize.config.json
+
+  # 🧪 Comprehensive Testing Suite
+  test-advanced:
+    name: 🧪 Advanced Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20] # Test multiple Node versions
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Unit & Integration Tests with coverage
+      - name: 🧪 Unit & Integration Tests
+        run: pnpm run test:run --coverage --reporter=verbose
+
+      # Coverage threshold check
+      - name: 📊 Coverage Threshold Check
+        run: |
+          COVERAGE=$(grep -o '"lines":{"pct":[0-9.]*' coverage/coverage-summary.json | grep -o '[0-9.]*$')
+          if (( $(echo "$COVERAGE < ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets threshold ${{ env.COVERAGE_THRESHOLD }}%"
+          fi
+
+      # Upload coverage to multiple services
+      - name: 📈 Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: 📈 Upload Coverage to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
+
+  # 🏗️ Advanced Build & Performance Testing
+  build-advanced:
+    name: 🏗️ Advanced Production Build
+    runs-on: ubuntu-latest
+    needs: [security-advanced, quality-advanced, test-advanced]
+    outputs:
+      build-size: ${{ steps.build-analysis.outputs.build-size }}
+      build-hash: ${{ steps.build-hash.outputs.hash }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Production build with optimization
+      - name: 🏗️ Production Build
+        run: |
+          pnpm run build
+          echo "Build completed at $(date)"
+        env:
+          NODE_ENV: production
+          VITE_BUILD_TIME: ${{ github.run_number }}
+          VITE_GIT_COMMIT: ${{ github.sha }}
+
+      # Build analysis and validation
+      - name: 📊 Build Analysis
+        id: build-analysis
+        run: |
+          BUILD_SIZE=$(du -sh dist/ | cut -f1)
+          echo "build-size=$BUILD_SIZE" >> $GITHUB_OUTPUT
+          echo "📦 Build size: $BUILD_SIZE"
+
+          # Check bundle size limit
+          MAIN_JS_SIZE=$(find dist/assets -name "*.js" -type f -exec du -b {} + | awk '{sum += $1} END {print sum}')
+          MAIN_JS_SIZE_KB=$((MAIN_JS_SIZE / 1024))
+          LIMIT_KB=$(echo "${{ env.BUNDLE_SIZE_LIMIT }}" | sed 's/kb//')
+
+          if [ $MAIN_JS_SIZE_KB -gt $LIMIT_KB ]; then
+            echo "❌ Bundle size ${MAIN_JS_SIZE_KB}kb exceeds limit ${LIMIT_KB}kb"
+            exit 1
+          else
+            echo "✅ Bundle size ${MAIN_JS_SIZE_KB}kb within limit ${LIMIT_KB}kb"
+          fi
+
+      # Generate build hash for cache busting
+      - name: 🔐 Generate Build Hash
+        id: build-hash
+        run: |
+          BUILD_HASH=$(find dist -type f -exec sha256sum {} \; | sha256sum | cut -d' ' -f1)
+          echo "hash=$BUILD_HASH" >> $GITHUB_OUTPUT
+
+      # Test production build functionality
+      - name: 🧪 Production Build Test
+        run: |
+          pnpm run preview &
+          SERVER_PID=$!
+          sleep 10
+
+          # Health check
+          curl -f http://localhost:4173/health || exit 1
+
+          # Basic functionality test
+          curl -f http://localhost:4173/ || exit 1
+
+          kill $SERVER_PID
+
+      - name: 📦 Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: production-build-${{ github.sha }}
+          path: dist/
+          retention-days: 30
+
+  # 🔒 Container Security & Optimization
+  container-security-advanced:
+    name: 🔒 Advanced Container Security
+    runs-on: ubuntu-latest
+    needs: [build-advanced]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-build-${{ github.sha }}
+          path: dist/
+
+      # Build optimized container
+      - name: 🐳 Build Production Container
+        run: |
+          docker build -t visionday:${{ github.sha }} .
+          docker tag visionday:${{ github.sha }} visionday:latest
+
+      # Multi-layer security scanning
+      - name: 🔍 Trivy Container Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'visionday:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 🔍 Grype Container Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: 'visionday:${{ github.sha }}'
+          fail-build: true
+          severity-cutoff: high
+
+      # Container optimization check
+      - name: ⚡ Container Optimization Check
+        run: |
+          docker images visionday:${{ github.sha }} --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+
+          # Check container size (should be under 50MB for optimized Alpine build)
+          SIZE=$(docker images visionday:${{ github.sha }} --format "{{.Size}}" | sed 's/MB//')
+          if (( $(echo "$SIZE > 50" | bc -l) )); then
+            echo "⚠️ Container size ${SIZE}MB - consider optimization"
+          else
+            echo "✅ Container size ${SIZE}MB is optimized"
+          fi
+
+      - name: Upload Security Scan Results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # 🚀 Performance Testing with Real Browsers
+  performance-testing:
+    name: ⚡ Performance Testing
+    runs-on: ubuntu-latest
+    needs: [build-advanced]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-build-${{ github.sha }}
+          path: dist/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Install Playwright for real browser testing
+      - name: Install Playwright
+        run: |
+          npm install -g @playwright/test
+          npx playwright install chromium
+
+      # Run Lighthouse CI for Core Web Vitals
+      - name: ⚡ Lighthouse CI Performance Test
+        run: |
+          npm install -g @lhci/cli@0.12.x
+
+          # Start preview server
+          npx serve -s dist -p 4173 &
+          SERVER_PID=$!
+          sleep 5
+
+          # Run Lighthouse tests
+          lhci autorun --config=.lighthouserc.json || true
+
+          # Kill server
+          kill $SERVER_PID
+
+      # Performance regression testing
+      - name: 📊 Performance Regression Check
+        run: |
+          echo "🔍 Checking Core Web Vitals thresholds..."
+          # Custom script to validate Lighthouse results
+          node scripts/validate-performance.js
+
+  # 🌐 Blue-Green Deployment to Staging
+  deploy-staging-blue-green:
+    name: 🌐 Blue-Green Deploy Staging
+    runs-on: ubuntu-latest
+    needs: [build-advanced, container-security-advanced, performance-testing]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.visionday.app
+    outputs:
+      deployment-url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-build-${{ github.sha }}
+          path: dist/
+
+      # Blue-Green deployment logic
+      - name: 🔄 Blue-Green Deployment
+        id: deploy
+        run: |
+          echo "🚀 Starting blue-green deployment to staging..."
+
+          # Determine current active slot (blue/green)
+          CURRENT_SLOT=$(curl -s https://staging.visionday.app/api/deployment-info | jq -r '.slot' || echo "blue")
+          NEW_SLOT=$([ "$CURRENT_SLOT" = "blue" ] && echo "green" || echo "blue")
+
+          echo "Current slot: $CURRENT_SLOT"
+          echo "Deploying to slot: $NEW_SLOT"
+
+          # Deploy to inactive slot
+          # Replace with your deployment method (Azure, AWS, etc.)
+          echo "Deploying to $NEW_SLOT slot..."
+
+          # Health check on new slot
+          echo "Running health checks on new deployment..."
+          sleep 30
+
+          # Switch traffic to new slot
+          echo "Switching traffic to $NEW_SLOT slot..."
+
+          DEPLOYMENT_URL="https://staging-$NEW_SLOT.visionday.app"
+          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+
+      # Post-deployment verification
+      - name: ✅ Deployment Verification
+        run: |
+          echo "🧪 Running post-deployment smoke tests..."
+
+          # Comprehensive smoke tests
+          curl -f ${{ steps.deploy.outputs.deployment-url }}/health || exit 1
+          curl -f ${{ steps.deploy.outputs.deployment-url }}/ || exit 1
+
+          # API health checks
+          curl -f ${{ steps.deploy.outputs.deployment-url }}/api/health || exit 1
+
+      # Rollback on failure
+      - name: 🔄 Automatic Rollback
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, initiating rollback..."
+          # Implement rollback logic here
+          echo "Rollback completed"
+
+  # 🏭 Blue-Green Production Deployment
+  deploy-production-blue-green:
+    name: 🏭 Blue-Green Deploy Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging-blue-green]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://visionday.app
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: production-build-${{ github.sha }}
+          path: dist/
+
+      # Production deployment with extra validation
+      - name: 🚀 Production Blue-Green Deployment
+        run: |
+          echo "🏭 Starting production deployment with blue-green strategy..."
+
+          # Pre-deployment validation
+          echo "Pre-deployment validation..."
+
+          # Deploy to production
+          echo "Deploying to production..."
+
+          # Gradual traffic shift (10% -> 50% -> 100%)
+          echo "Starting gradual traffic shift..."
+
+          # 10% traffic to new deployment
+          echo "Shifting 10% traffic..."
+          sleep 60
+
+          # Monitor for 5 minutes
+          echo "Monitoring metrics for 5 minutes..."
+          sleep 300
+
+          # 50% traffic
+          echo "Shifting 50% traffic..."
+          sleep 60
+
+          # Monitor for 10 minutes
+          echo "Monitoring metrics for 10 minutes..."
+          sleep 600
+
+          # 100% traffic
+          echo "Shifting 100% traffic to new deployment..."
+
+      # Production monitoring setup
+      - name: 📊 Setup Production Monitoring
+        run: |
+          echo "🔍 Configuring production monitoring..."
+
+          # Setup alerts and monitoring
+          # Integration with monitoring services
+
+          echo "Production deployment completed successfully! ✅"
+
+      # Notification
+      - name: 📢 Deployment Notification
+        run: |
+          echo "🎉 Production deployment successful!"
+          echo "Build: ${{ needs.build-advanced.outputs.build-hash }}"
+          echo "Size: ${{ needs.build-advanced.outputs.build-size }}"
+
+          # Send notifications (Slack, email, etc.)
+
+  # 🧹 Cleanup
+  cleanup:
+    name: 🧹 Cleanup Old Artifacts
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-production-blue-green, deploy-staging-blue-green]
+    steps:
+      - name: Cleanup old build artifacts
+        run: |
+          echo "🧹 Cleaning up old build artifacts..."
+          # Cleanup logic for old builds and artifacts

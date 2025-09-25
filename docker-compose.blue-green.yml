@@ -1,0 +1,344 @@
+# Docker Compose Configuration for Blue-Green Deployment
+# Supports zero-downtime deployments with traffic switching capabilities
+
+version: '3.8'
+
+networks:
+  visionday-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  nginx_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+services:
+  # =============================================================================
+  # LOAD BALANCER - Nginx with dynamic upstream switching
+  # =============================================================================
+  load-balancer:
+    image: nginx:1.25-alpine
+    container_name: visionday-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/ssl:ro
+      - nginx_cache:/var/cache/nginx
+      - ./nginx/scripts:/scripts:ro
+    environment:
+      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
+      - ACTIVE_SLOT=${ACTIVE_SLOT:-blue}
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.10
+    depends_on:
+      - visionday-blue
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "component=load-balancer"
+      - "environment=${ENVIRONMENT:-production}"
+
+  # =============================================================================
+  # BLUE SLOT - Primary deployment slot
+  # =============================================================================
+  visionday-blue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - BUILD_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+        - GIT_COMMIT=${GIT_COMMIT:-unknown}
+        - ENVIRONMENT=production
+    image: visionday:blue-${DEPLOYMENT_ID:-latest}
+    container_name: visionday-blue
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DEPLOYMENT_SLOT=blue
+      - DEPLOYMENT_ID=${DEPLOYMENT_ID:-blue-latest}
+      - DEPLOYMENT_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_APP_URL=${VITE_APP_URL}
+      - VITE_API_PROTECTION=${VITE_API_PROTECTION:-true}
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.11
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "slot=blue"
+      - "component=application"
+      - "environment=${ENVIRONMENT:-production}"
+      - "deployment.id=${DEPLOYMENT_ID:-blue-latest}"
+
+  # =============================================================================
+  # GREEN SLOT - Secondary deployment slot
+  # =============================================================================
+  visionday-green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - BUILD_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+        - GIT_COMMIT=${GIT_COMMIT:-unknown}
+        - ENVIRONMENT=production
+    image: visionday:green-${DEPLOYMENT_ID:-latest}
+    container_name: visionday-green
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DEPLOYMENT_SLOT=green
+      - DEPLOYMENT_ID=${DEPLOYMENT_ID:-green-latest}
+      - DEPLOYMENT_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_APP_URL=${VITE_APP_URL}
+      - VITE_API_PROTECTION=${VITE_API_PROTECTION:-true}
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.12
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - green-deployment
+    labels:
+      - "slot=green"
+      - "component=application"
+      - "environment=${ENVIRONMENT:-production}"
+      - "deployment.id=${DEPLOYMENT_ID:-green-latest}"
+
+  # =============================================================================
+  # MONITORING SERVICES
+  # =============================================================================
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: visionday-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.20
+    labels:
+      - "component=monitoring"
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: visionday-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.21
+    depends_on:
+      - prometheus
+    labels:
+      - "component=monitoring"
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: visionday-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.22
+    labels:
+      - "component=monitoring"
+
+  # cAdvisor - Container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: visionday-cadvisor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.23
+    labels:
+      - "component=monitoring"
+
+  # =============================================================================
+  # LOGGING SERVICES
+  # =============================================================================
+
+  # Fluentd - Log aggregation
+  fluentd:
+    image: fluentd:v1.16-1
+    container_name: visionday-fluentd
+    restart: unless-stopped
+    ports:
+      - "24224:24224"
+    volumes:
+      - ./logging/fluentd.conf:/fluentd/etc/fluent.conf:ro
+      - /var/log:/var/log:ro
+    environment:
+      - FLUENTD_CONF=fluent.conf
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.30
+    labels:
+      - "component=logging"
+
+  # =============================================================================
+  # DEPLOYMENT UTILITIES
+  # =============================================================================
+
+  # Health Checker - Continuous health monitoring
+  health-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile.health-checker
+    container_name: visionday-health-checker
+    restart: unless-stopped
+    volumes:
+      - ./scripts/health-check.js:/app/health-check.js:ro
+      - ./monitoring-config.yml:/app/config.yml:ro
+    environment:
+      - NODE_ENV=production
+      - HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL:-60}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.40
+    depends_on:
+      - load-balancer
+    labels:
+      - "component=health-checker"
+
+  # Traffic Splitter - Blue-Green traffic management
+  traffic-splitter:
+    image: nginx:1.25-alpine
+    container_name: visionday-traffic-splitter
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./nginx/traffic-splitter.conf:/etc/nginx/nginx.conf:ro
+      - ./scripts/traffic-control.sh:/scripts/traffic-control.sh:ro
+    environment:
+      - BLUE_WEIGHT=${BLUE_WEIGHT:-100}
+      - GREEN_WEIGHT=${GREEN_WEIGHT:-0}
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.41
+    depends_on:
+      - visionday-blue
+    labels:
+      - "component=traffic-splitter"
+
+  # =============================================================================
+  # BACKUP AND RECOVERY
+  # =============================================================================
+
+  # Backup Service - Automated backups
+  backup-service:
+    image: alpine:latest
+    container_name: visionday-backup
+    restart: unless-stopped
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - /var/backups:/backups
+    environment:
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-"0 2 * * *"}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+    command: crond -f
+    networks:
+      visionday-network:
+        ipv4_address: 172.20.0.50
+    labels:
+      - "component=backup"
+
+# =============================================================================
+# CONFIGURATION PROFILES
+# =============================================================================
+
+# Usage examples:
+#
+# Start blue slot only:
+# docker-compose -f docker-compose.blue-green.yml up load-balancer visionday-blue
+#
+# Deploy to green slot:
+# docker-compose -f docker-compose.blue-green.yml --profile green-deployment up -d visionday-green
+#
+# Switch traffic (using environment variables):
+# ACTIVE_SLOT=green docker-compose -f docker-compose.blue-green.yml up -d load-balancer
+#
+# Full monitoring stack:
+# docker-compose -f docker-compose.blue-green.yml --profile monitoring up -d
+#
+# Complete blue-green setup:
+# docker-compose -f docker-compose.blue-green.yml --profile green-deployment --profile monitoring up -d

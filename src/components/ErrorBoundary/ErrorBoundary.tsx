@@ -26,28 +26,45 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Check if it's a browser extension error we should ignore
+    const isExtensionError =
+      error.message?.includes('share-modal') ||
+      error.message?.includes('chrome-extension') ||
+      error.message?.includes('moz-extension') ||
+      error.message?.includes('Extension context') ||
+      error.message?.includes('ResizeObserver loop') ||
+      error.message?.includes('The message port closed') ||
+      error.stack?.includes('chrome-extension://') ||
+      error.stack?.includes('moz-extension://');
+
+    if (isExtensionError) {
+      console.warn('Browser extension error caught and suppressed:', error.message);
+      // Don't show error UI for extension errors - just log and continue
+      return;
+    }
+
     console.error('Error caught by boundary:', error, errorInfo);
-    
+
     // Special handling for session-related errors
-    const isSessionError = error.message.includes('session is not defined') || 
+    const isSessionError = error.message.includes('session is not defined') ||
                            error.message.includes('Cannot read properties of null');
-    
-    if (isSessionError) {
+
+    if (isSessionError && !isExtensionError) {
       console.warn('Session-related error detected, attempting recovery');
-      
+
       // Initialize emergency session fallback
       if (!window.session && window.__emergencyFallback) {
         window.session = window.__emergencyFallback.session;
         console.warn('Emergency session fallback activated');
       }
-      
+
       // Try to recover by reloading the page after a delay
       setTimeout(() => {
         console.log('Attempting page reload to recover from session error');
         window.location.reload();
       }, 1000);
     }
-    
+
     this.setState({
       hasError: true,
       error,

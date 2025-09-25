@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AuthError } from "@supabase/supabase-js";
+import { logger } from '@/lib/logger';
 
 type AuthMode = 'sign_in' | 'sign_up' | 'forgot_password';
 
@@ -83,9 +84,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     e.preventDefault();
     if (!email || !password) return;
 
-    // MARCA EN LOGIN PARA DEBUGGING
-    console.error('[LOGIN] mounted');
-    console.error('SB mark:', (window as any).__SB_CLIENT_MARK__);
+    // Login debugging (safe for production)
+    logger.auth('Login attempt initiated');
 
     setLoading(true);
     setMessage(null);
@@ -105,10 +105,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
       onSuccess?.();
 
-      // Redirect if URL provided
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      }
+      // NO REDIRECT - Let React Router handle navigation
+      // The SessionContext will handle navigation after successful auth
     } catch (error) {
       handleError(error as AuthError);
     } finally {

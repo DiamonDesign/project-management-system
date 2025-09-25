@@ -1,0 +1,66 @@
+{
+  "environment": "development",
+  "app": {
+    "url": "http://localhost:5173",
+    "port": 5173,
+    "debug": true,
+    "logLevel": "debug",
+    "cors": {
+      "origins": [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"
+      ]
+    }
+  },
+  "database": {
+    "ssl": false,
+    "poolSize": 5
+  },
+  "security": {
+    "sessionTimeout": 7200,
+    "rateLimiting": {
+      "enabled": false,
+      "windowMs": 900000,
+      "maxRequests": 1000
+    }
+  },
+  "services": {
+    "sentry": {
+      "environment": "development",
+      "sampleRate": 1.0
+    },
+    "monitoring": {
+      "enabled": false
+    }
+  },
+  "features": {
+    "analytics": false,
+    "notifications": false,
+    "collaboration": true,
+    "advancedReports": true,
+    "aiAssistant": true,
+    "apiV2": true
+  },
+  "performance": {
+    "caching": {
+      "enabled": false
+    },
+    "compression": {
+      "enabled": false
+    },
+    "cdn": {
+      "enabled": false
+    }
+  },
+  "deployment": {
+    "strategy": "rolling",
+    "healthCheck": {
+      "timeout": 10000
+    },
+    "rollback": {
+      "threshold": 0.1
+    }
+  }
+}

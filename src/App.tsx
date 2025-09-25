@@ -1,21 +1,25 @@
 import React, { Suspense } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ProjectProvider } from "./context/ProjectContext";
+import { TaskProvider } from "./context/TaskContext";
 import { SessionContextProvider } from "./context/SessionContext";
 import { ClientProvider } from "./context/ClientContext";
 import { Layout } from "./components/Layout";
 import { ErrorBoundary, PageErrorBoundary } from "./components/ErrorBoundary";
 import { PageLoading } from "@/components/ui/loading";
 import { RequireAuth, ClientPortalRoute } from "@/components/auth/ProtectedRoute";
+import { useSession } from "@/hooks/useSession";
 
-// Code splitting with React.lazy()
+// TEMPORARY FIX: Import Projects directly instead of lazy loading to debug loading issue
+import Projects from "./pages/Projects";
+
+// Code splitting with React.lazy() for other components
 const Index = React.lazy(() => import("./pages/Index"));
 const Landing = React.lazy(() => import("./pages/Landing"));
-const Projects = React.lazy(() => import("./pages/Projects"));
+// const Projects = React.lazy(() => import("./pages/Projects")); // DISABLED FOR DEBUGGING
 const ArchivedProjects = React.lazy(() => import("./pages/ArchivedProjects"));
 const ProjectDetail = React.lazy(() => import("./pages/ProjectDetail"));
 const Clients = React.lazy(() => import("./pages/Clients"));
@@ -30,6 +34,7 @@ const ClientPortalInvite = React.lazy(() => import("./pages/ClientPortalInvite")
 const ClientPortalDashboard = React.lazy(() => import("./pages/ClientPortalDashboard"));
 const AuthCallback = React.lazy(() => import("./pages/AuthCallback"));
 const EnvCheck = React.lazy(() => import("./pages/EnvCheck"));
+const SupabaseTest = React.lazy(() => import("./pages/SupabaseTest"));
 
 // Query client with optimized configuration
 const queryClient = new QueryClient({
@@ -61,16 +66,40 @@ const LazyRoute = ({ children }: { children: React.ReactNode }) => (
   </PageErrorBoundary>
 );
 
+// Component to conditionally render dependent providers only when session is ready
+const DependentProviders = ({ children }: { children: React.ReactNode }) => {
+  const { isLoading, session } = useSession();
+
+  console.log('[DependentProviders] isLoading:', isLoading, 'session:', !!session);
+
+  // FIXED: Only show loading during initial auth determination
+  // Show loading ONLY when we're still determining auth state (isLoading = true)
+  // Once isLoading = false, we have a definitive answer: either session or no session
+  if (isLoading) {
+    console.log('[DependentProviders] Showing PageLoading - determining auth state');
+    return <PageLoading message="Verificando autenticación..." />;
+  }
+
+  console.log('[DependentProviders] Auth state determined, rendering providers and children');
+  return (
+    <ProjectProvider>
+      <TaskProvider>
+        <ClientProvider>
+          {children}
+        </ClientProvider>
+      </TaskProvider>
+    </ProjectProvider>
+  );
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
         <SessionContextProvider>
-          <ProjectProvider>
-            <ClientProvider>
-              <Routes>
+          <DependentProviders>
+            <Routes>
                 <Route path="/" element={
                   <LazyRoute><Index /></LazyRoute>
                 } />
@@ -99,7 +128,7 @@ const App = () => (
                   } />
                   <Route path="/projects" element={
                     <RequireAuth>
-                      <LazyRoute><Projects /></LazyRoute>
+                      <Projects />
                     </RequireAuth>
                   } />
                   <Route path="/projects/archived" element={
@@ -141,12 +170,14 @@ const App = () => (
                 <Route path="/env-check" element={
                   <LazyRoute><EnvCheck /></LazyRoute>
                 } />
+                <Route path="/supabase-test" element={
+                  <LazyRoute><SupabaseTest /></LazyRoute>
+                } />
                 <Route path="*" element={
                   <LazyRoute><NotFound /></LazyRoute>
                 } />
               </Routes>
-            </ClientProvider>
-          </ProjectProvider>
+          </DependentProviders>
         </SessionContextProvider>
       </TooltipProvider>
     </QueryClientProvider>

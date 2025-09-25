@@ -102,6 +102,7 @@
     "happy-dom": "^18.0.1",
     "jsdom": "^26.1.0",
     "msw": "^2.11.1",
+    "playwright": "^1.55.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "terser": "^5.44.0",

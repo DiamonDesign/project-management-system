@@ -104,25 +104,15 @@ export const PageLoading = ({
   const [countdown, setCountdown] = React.useState(5);
 
   React.useEffect(() => {
-    // Start countdown after 3 seconds
+    // Show emergency options after 8 seconds (increased from 3s for better reliability)
     const emergencyTimer = setTimeout(() => {
       setShowEmergencyOptions(true);
-    }, 3000);
+    }, 8000);
 
     return () => clearTimeout(emergencyTimer);
   }, []);
 
-  React.useEffect(() => {
-    if (showEmergencyOptions && countdown > 0) {
-      const countdownTimer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(countdownTimer);
-    } else if (showEmergencyOptions && countdown === 0) {
-      // Auto-redirect to login after countdown
-      window.location.href = '/login';
-    }
-  }, [showEmergencyOptions, countdown]);
+  // Removed auto-redirect - user now has full control
 
   return (
     <div className={cn(
@@ -141,7 +131,7 @@ export const PageLoading = ({
               ⚠️ La aplicación está tardando más de lo esperado en cargar.
             </p>
             <p className="text-amber-700 text-xs mb-4">
-              Redirigiendo automáticamente al login en {countdown} segundos...
+              Puedes recargar la página o ir directamente al login si el problema persiste.
             </p>
             <div className="flex gap-2 justify-center">
               <button 

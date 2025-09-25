@@ -1,99 +1,49 @@
+/**
+ * TaskContext - Specialized for Task Management
+ *
+ * ONLY handles:
+ * - Task CRUD operations
+ * - Task status updates
+ * - Task priority management
+ * - Optimistic updates for performance
+ */
+
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { showSuccess, showError } from "@/utils/toast";
-import { TaskFormSchema, type TaskFormData } from "@/lib/schemas";
-
-// Database RPC result interface
-interface TaskRPCResult {
-  task_id: string;
-  project_id: string;
-  title: string;
-  description: string;
-  status: 'not-started' | 'in-progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  start_date: string | null;
-  end_date: string | null;
-  is_daily_task: boolean;
-  created_at: string;
-  updated_at: string;
-  project_name: string;
-  project_status: string;
-  client_name: string | null;
-  is_overdue: boolean;
-  days_until_due: number | null;
-}
-
-// Normalized Task interface matching the database schema
-export interface Task {
-  id: string;
-  project_id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  status: 'not-started' | 'in-progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  start_date?: string;
-  end_date?: string;
-  is_daily_task: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-  // Derived fields from joins
-  project_name?: string;
-  client_name?: string | null;
-  is_overdue?: boolean;
-  days_until_due?: number | null;
-}
-
-export interface TaskWithContext extends Task {
-  project_name: string;
-  project_status: string;
-  client_name: string | null;
-  is_overdue: boolean;
-  days_until_due: number | null;
-}
-
-// TaskFormSchema moved to @/lib/schemas to fix Fast Refresh warnings
+import { logger } from "@/lib/logger";
+import type { Task } from "@/types/shared";
 
 interface TaskContextType {
-  tasks: TaskWithContext[];
+  // State
+  tasks: Task[];
   isLoadingTasks: boolean;
-  // Task CRUD operations
-  addTask: (projectId: string, taskData: TaskFormData) => Promise<void>;
+
+  // Task operations
+  addTask: (projectId: string, title: string, description?: string, start_date?: string, end_date?: string, priority?: Task['priority']) => Promise<void>;
   updateTask: (taskId: string, updatedFields: Partial<Task>) => Promise<void>;
-  deleteTask: (taskId: string) => Promise<void>;
-  // Task status operations
   updateTaskStatus: (taskId: string, newStatus: Task['status']) => Promise<void>;
-  updateTaskPriority: (taskId: string, newPriority: Task['priority']) => Promise<void>;
-  toggleDailyTask: (taskId: string, isDaily: boolean) => Promise<void>;
-  // Task organization
-  reorderProjectTasks: (projectId: string, taskOrders: { task_id: string; sort_order: number }[]) => Promise<void>;
-  // Task queries
-  getTasksByProject: (projectId: string) => TaskWithContext[];
-  getTasksByStatus: (status: Task['status']) => TaskWithContext[];
-  getTasksByPriority: (priority: Task['priority']) => TaskWithContext[];
-  getOverdueTasks: () => TaskWithContext[];
-  getDueThisWeek: () => TaskWithContext[];
-  getUserTaskStats: () => {
-    total: number;
-    pending: number;
-    active: number;
-    completed: number;
-    overdue: number;
-    high_priority: number;
-  };
+  updateTaskDailyStatus: (taskId: string, isDaily: boolean) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+
+  // Utilities
+  getTasksByProject: (projectId: string) => Task[];
+  getTaskById: (taskId: string) => Task | undefined;
+  refreshTasks: () => Promise<void>;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoading: isLoadingSession } = useSession();
-  const [tasks, setTasks] = useState<TaskWithContext[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  /**
+   * Fetch all tasks for current user
+   */
   const fetchTasks = useCallback(async () => {
     if (!user) {
       setTasks([]);
@@ -105,56 +55,57 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Create new AbortController for this request
+
     abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
 
-    setIsLoadingTasks(true);
-    
     try {
-      // Use the optimized function from the database
-      const { data, error } = await supabase
-        .rpc('get_user_tasks_with_context', { 
-          p_user_id: user.id, 
-          p_limit: 1000 
-        })
-        .abortSignal(signal);
+      setIsLoadingTasks(true);
 
-      if (error) {
-        throw error;
+      // Fetch tasks with project data for denormalization
+      const { data: tasksData, error: tasksError } = await supabase
+        .from("tasks")
+        .select(`
+          *,
+          projects!inner(
+            id,
+            name,
+            user_id
+          )
+        `)
+        .eq("projects.user_id", user.id)
+        .abortSignal(abortControllerRef.current.signal);
+
+      if (tasksError) {
+        // Handle 404 for missing tasks table gracefully
+        if (tasksError.code === 'PGRST116' || tasksError.message.includes('404')) {
+          logger.warn('TaskContext', 'Tasks table not found, using empty array');
+          setTasks([]);
+          return;
+        }
+        throw tasksError;
       }
 
-      // Transform the RPC result to match our interface
-      const tasksWithContext: TaskWithContext[] = (data || []).map((task: TaskRPCResult) => ({
-        id: task.task_id,
-        project_id: task.project_id,
-        user_id: user.id,
+      // Transform to Task format with denormalized project data
+      const transformedTasks: Task[] = (tasksData || []).map(task => ({
+        id: task.id,
         title: task.title,
-        description: task.description || '',
+        description: task.description,
         status: task.status,
-        priority: task.priority,
+        createdAt: task.created_at,
         start_date: task.start_date,
         end_date: task.end_date,
         is_daily_task: task.is_daily_task,
-        sort_order: 0, // Will be set by reorder function
-        created_at: task.created_at,
-        updated_at: task.updated_at,
-        // Context fields
-        project_name: task.project_name,
-        project_status: task.project_status,
-        client_name: task.client_name,
-        is_overdue: task.is_overdue,
-        days_until_due: task.days_until_due,
+        priority: task.priority,
+        projectId: task.project_id,
+        projectName: task.projects?.name,
       }));
-      
-      setTasks(tasksWithContext);
+
+      setTasks(transformedTasks);
+      logger.log('TaskContext', `Loaded ${transformedTasks.length} tasks`);
+
     } catch (error: unknown) {
-      // Check if request was aborted
       if (error instanceof Error && error.name !== 'AbortError') {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching tasks:', error);
-        }
+        logger.error('TaskContext', 'Failed to fetch tasks', error);
         showError("Error al cargar las tareas");
       }
     } finally {
@@ -162,225 +113,282 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  // Fetch tasks on mount and user change
+  // Load tasks when session is ready
   useEffect(() => {
     if (!isLoadingSession) {
       fetchTasks();
     }
+  }, [isLoadingSession, fetchTasks]);
 
-    // Cleanup on unmount
+  /**
+   * Add new task (optimistic update)
+   */
+  const addTask = useCallback(async (
+    projectId: string,
+    title: string,
+    description?: string,
+    start_date?: string,
+    end_date?: string,
+    priority?: Task['priority']
+  ): Promise<void> => {
+    if (!user?.id) {
+      showError("Debes iniciar sesión para añadir tareas.");
+      return;
+    }
+
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const optimisticTask: Task = {
+      id: tempId,
+      title,
+      description,
+      status: 'not-started',
+      createdAt: new Date().toISOString(),
+      start_date,
+      end_date,
+      is_daily_task: false,
+      priority: priority || 'medium',
+      projectId,
+      projectName: 'Loading...', // Will be updated after server response
+    };
+
+    setTasks(prev => [optimisticTask, ...prev]);
+
+    try {
+      const taskData = {
+        title,
+        description,
+        status: 'not-started' as const,
+        project_id: projectId,
+        start_date,
+        end_date,
+        priority: priority || 'medium',
+        is_daily_task: false,
+      };
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .insert(taskData)
+        .select(`
+          *,
+          projects(
+            id,
+            name
+          )
+        `)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Replace optimistic task with real task
+      const realTask: Task = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        createdAt: data.created_at,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        is_daily_task: data.is_daily_task,
+        priority: data.priority,
+        projectId: data.project_id,
+        projectName: data.projects?.name,
+      };
+
+      setTasks(prev => prev.map(task => task.id === tempId ? realTask : task));
+      showSuccess("Tarea añadida exitosamente.");
+
+    } catch (error: unknown) {
+      // Revert optimistic update
+      setTasks(prev => prev.filter(task => task.id !== tempId));
+
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      logger.error('TaskContext', 'Failed to add task', error);
+      showError("Error al añadir la tarea: " + errorMessage);
+    }
+  }, [user]);
+
+  /**
+   * Update task (optimistic update)
+   */
+  const updateTask = useCallback(async (taskId: string, updatedFields: Partial<Task>): Promise<void> => {
+    if (!user?.id) {
+      showError("Debes iniciar sesión para actualizar tareas.");
+      return;
+    }
+
+    // Optimistic update
+    const originalTask = tasks.find(t => t.id === taskId);
+    if (!originalTask) return;
+
+    setTasks(prev => prev.map(task =>
+      task.id === taskId ? { ...task, ...updatedFields } : task
+    ));
+
+    try {
+      // Transform fields for database
+      interface DatabaseTaskUpdate {
+        [key: string]: unknown;
+      }
+
+      const updateData: DatabaseTaskUpdate = { ...updatedFields };
+      delete updateData.projectId;
+      delete updateData.projectName;
+      delete updateData.createdAt;
+
+      const { error } = await supabase
+        .from("tasks")
+        .update(updateData)
+        .eq("id", taskId);
+
+      if (error) {
+        throw error;
+      }
+
+      showSuccess("Tarea actualizada exitosamente.");
+
+    } catch (error: unknown) {
+      // Revert optimistic update
+      setTasks(prev => prev.map(task =>
+        task.id === taskId ? originalTask : task
+      ));
+
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      logger.error('TaskContext', 'Failed to update task', error);
+      showError("Error al actualizar la tarea: " + errorMessage);
+    }
+  }, [user, tasks]);
+
+  /**
+   * Update task status (optimistic update)
+   */
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: Task['status']): Promise<void> => {
+    await updateTask(taskId, { status: newStatus });
+  }, [updateTask]);
+
+  /**
+   * Update task daily status (optimistic update)
+   */
+  const updateTaskDailyStatus = useCallback(async (taskId: string, isDaily: boolean): Promise<void> => {
+    await updateTask(taskId, { is_daily_task: isDaily });
+  }, [updateTask]);
+
+  /**
+   * Delete task (optimistic update)
+   */
+  const deleteTask = useCallback(async (taskId: string): Promise<void> => {
+    if (!user?.id) {
+      showError("Debes iniciar sesión para eliminar tareas.");
+      return;
+    }
+
+    // Optimistic update
+    const originalTasks = tasks;
+    setTasks(prev => prev.filter(task => task.id !== taskId));
+
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("id", taskId);
+
+      if (error) {
+        throw error;
+      }
+
+      showSuccess("Tarea eliminada exitosamente.");
+
+    } catch (error: unknown) {
+      // Revert optimistic update
+      setTasks(originalTasks);
+
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      logger.error('TaskContext', 'Failed to delete task', error);
+      showError("Error al eliminar la tarea: " + errorMessage);
+    }
+  }, [user, tasks]);
+
+  /**
+   * Get tasks by project ID
+   */
+  const getTasksByProject = useCallback((projectId: string): Task[] => {
+    return tasks.filter(task => task.projectId === projectId);
+  }, [tasks]);
+
+  /**
+   * Get task by ID
+   */
+  const getTaskById = useCallback((taskId: string): Task | undefined => {
+    return tasks.find(task => task.id === taskId);
+  }, [tasks]);
+
+  /**
+   * Refresh tasks manually
+   */
+  const refreshTasks = useCallback(async (): Promise<void> => {
+    await fetchTasks();
+  }, [fetchTasks]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchTasks, isLoadingSession]);
+  }, []);
 
-  const addTask = useCallback(async (projectId: string, taskData: TaskFormData) => {
-    if (!user || !isValidUuid(projectId)) {
-      throw new Error("ID de proyecto inválido o usuario no autenticado");
-    }
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .insert({
-          project_id: projectId,
-          user_id: user.id,
-          title: taskData.title,
-          description: taskData.description || '',
-          status: taskData.status,
-          priority: taskData.priority,
-          start_date: taskData.start_date || null,
-          end_date: taskData.end_date || null,
-          is_daily_task: taskData.is_daily_task || false,
-          sort_order: Date.now() // Simple ordering mechanism
-        });
-
-      if (error) throw error;
-
-      await fetchTasks(); // Refresh the task list
-      showSuccess("Tarea creada exitosamente");
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating task:', error);
-      }
-      showError("Error al crear la tarea");
-      throw error;
-    }
-  }, [user, fetchTasks]);
-
-  const updateTask = useCallback(async (taskId: string, updatedFields: Partial<Task>) => {
-    if (!user || !isValidUuid(taskId)) {
-      throw new Error("ID de tarea inválido o usuario no autenticado");
-    }
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          ...updatedFields,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', taskId)
-        .eq('user_id', user.id); // Security: only update own tasks
-
-      if (error) throw error;
-
-      await fetchTasks(); // Refresh the task list
-      showSuccess("Tarea actualizada exitosamente");
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error updating task:', error);
-      }
-      showError("Error al actualizar la tarea");
-      throw error;
-    }
-  }, [user, fetchTasks]);
-
-  const deleteTask = useCallback(async (taskId: string) => {
-    if (!user || !isValidUuid(taskId)) {
-      throw new Error("ID de tarea inválido o usuario no autenticado");
-    }
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId)
-        .eq('user_id', user.id); // Security: only delete own tasks
-
-      if (error) throw error;
-
-      await fetchTasks(); // Refresh the task list
-      showSuccess("Tarea eliminada exitosamente");
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error deleting task:', error);
-      }
-      showError("Error al eliminar la tarea");
-      throw error;
-    }
-  }, [user, fetchTasks]);
-
-  const updateTaskStatus = useCallback(async (taskId: string, newStatus: Task['status']) => {
-    await updateTask(taskId, { status: newStatus });
-  }, [updateTask]);
-
-  const updateTaskPriority = useCallback(async (taskId: string, newPriority: Task['priority']) => {
-    await updateTask(taskId, { priority: newPriority });
-  }, [updateTask]);
-
-  const toggleDailyTask = useCallback(async (taskId: string, isDaily: boolean) => {
-    await updateTask(taskId, { is_daily_task: isDaily });
-  }, [updateTask]);
-
-  const reorderProjectTasks = useCallback(async (projectId: string, taskOrders: { task_id: string; sort_order: number }[]) => {
-    if (!user || !isValidUuid(projectId)) {
-      throw new Error("ID de proyecto inválido o usuario no autenticado");
-    }
-
-    try {
-      // Use Promise.all for batch updates
-      const updatePromises = taskOrders.map(({ task_id, sort_order }) => 
-        supabase
-          .from('tasks')
-          .update({ sort_order })
-          .eq('id', task_id)
-          .eq('user_id', user.id)
-          .eq('project_id', projectId)
-      );
-
-      const results = await Promise.all(updatePromises);
-      
-      // Check if any updates failed
-      const hasError = results.some(result => result.error);
-      if (hasError) {
-        throw new Error("Error al reordenar algunas tareas");
-      }
-
-      await fetchTasks(); // Refresh the task list
-      showSuccess("Tareas reordenadas exitosamente");
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error reordering tasks:', error);
-      }
-      showError("Error al reordenar las tareas");
-      throw error;
-    }
-  }, [user, fetchTasks]);
-
-  // Query functions (computed values from state)
-  const getTasksByProject = useCallback((projectId: string): TaskWithContext[] => {
-    return tasks.filter(task => task.project_id === projectId);
-  }, [tasks]);
-
-  const getTasksByStatus = useCallback((status: Task['status']): TaskWithContext[] => {
-    return tasks.filter(task => task.status === status);
-  }, [tasks]);
-
-  const getTasksByPriority = useCallback((priority: Task['priority']): TaskWithContext[] => {
-    return tasks.filter(task => task.priority === priority);
-  }, [tasks]);
-
-  const getOverdueTasks = useCallback((): TaskWithContext[] => {
-    return tasks.filter(task => task.is_overdue);
-  }, [tasks]);
-
-  const getDueThisWeek = useCallback((): TaskWithContext[] => {
-    return tasks.filter(task => task.days_until_due !== null && task.days_until_due <= 7 && task.days_until_due >= 0);
-  }, [tasks]);
-
-  const getUserTaskStats = useCallback(() => {
-    const stats = {
-      total: tasks.length,
-      pending: 0,
-      active: 0,
-      completed: 0,
-      overdue: 0,
-      high_priority: 0,
-    };
-
-    tasks.forEach(task => {
-      if (task.status === 'not-started') stats.pending++;
-      if (task.status === 'in-progress') stats.active++;
-      if (task.status === 'completed') stats.completed++;
-      if (task.is_overdue) stats.overdue++;
-      if (task.priority === 'high') stats.high_priority++;
-    });
-
-    return stats;
-  }, [tasks]);
-
-  const value: TaskContextType = {
+  const contextValue: TaskContextType = {
+    // State
     tasks,
     isLoadingTasks,
-    // CRUD operations
+
+    // Operations
     addTask,
     updateTask,
-    deleteTask,
-    // Status operations
     updateTaskStatus,
-    updateTaskPriority,
-    toggleDailyTask,
-    // Organization
-    reorderProjectTasks,
-    // Queries
+    updateTaskDailyStatus,
+    deleteTask,
+
+    // Utilities
     getTasksByProject,
-    getTasksByStatus,
-    getTasksByPriority,
-    getOverdueTasks,
-    getDueThisWeek,
-    getUserTaskStats,
+    getTaskById,
+    refreshTasks,
   };
 
-  return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;
+  return (
+    <TaskContext.Provider value={contextValue}>
+      {children}
+    </TaskContext.Provider>
+  );
 };
 
-export const useTask = () => {
+/**
+ * Hook to use TaskContext
+ */
+export const useTaskContext = () => {
   const context = useContext(TaskContext);
   if (context === undefined) {
-    throw new Error('useTask must be used within a TaskProvider');
+    // More graceful error handling - provide fallback instead of throwing
+    console.warn('useTaskContext called outside of TaskProvider, providing fallback context');
+    return {
+      // Fallback context with safe defaults
+      tasks: [],
+      isLoadingTasks: false,
+      addTask: async () => { console.warn('TaskContext not available - addTask ignored'); },
+      updateTask: async () => { console.warn('TaskContext not available - updateTask ignored'); },
+      updateTaskStatus: async () => { console.warn('TaskContext not available - updateTaskStatus ignored'); },
+      updateTaskDailyStatus: async () => { console.warn('TaskContext not available - updateTaskDailyStatus ignored'); },
+      deleteTask: async () => { console.warn('TaskContext not available - deleteTask ignored'); },
+      getTasksByProject: () => [],
+      getTaskById: () => undefined,
+      refreshTasks: async () => { console.warn('TaskContext not available - refreshTasks ignored'); },
+    };
   }
   return context;
 };
+
+// Export types
+export type { TaskContextType };

@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useProjectContext } from "@/context/ProjectContext";
+import { useTaskContext } from "@/context/TaskContext";
 
 const TaskFormSchema = z.object({
   projectId: z.string().min(1, { message: "Debes seleccionar un proyecto." }),
@@ -50,7 +51,8 @@ interface AddTaskDialogProps {
 }
 
 export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddTaskDialogProps) => {
-  const { projects, isLoadingProjects, addTaskToProject } = useProjectContext();
+  const { projects, isLoadingProjects } = useProjectContext();
+  const { addTask } = useTaskContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof TaskFormSchema>>({
@@ -76,7 +78,7 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
     setIsSubmitting(true);
 
     try {
-      await addTaskToProject(
+      await addTask(
         values.projectId,
         values.title,
         values.description || undefined,
@@ -95,7 +97,7 @@ export const AddTaskDialog = ({ open, onOpenChange, preselectedProjectId }: AddT
       });
       onOpenChange(false);
     } catch (error) {
-      // Error is handled by ProjectContext.addTaskToProject() which shows error message
+      // Error is handled by TaskContext.addTask() which shows error message
       console.error("Error adding task:", error);
 
       // Don't close dialog on error - let user retry

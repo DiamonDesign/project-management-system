@@ -1,0 +1,407 @@
+# Production Monitoring Configuration
+# Comprehensive monitoring setup for VisionDay application
+
+version: '1.0'
+
+# Application Configuration
+application:
+  name: "VisionDay"
+  version: "1.0.0"
+  environment: "production"
+
+# Monitoring Services Integration
+services:
+  # Error Tracking - Sentry
+  sentry:
+    enabled: true
+    dsn: "${SENTRY_DSN}"
+    environment: "${NODE_ENV}"
+    sample_rate: 0.1
+    traces_sample_rate: 0.1
+    release: "${VITE_APP_VERSION}"
+    integrations:
+      - browser_tracing
+      - performance_monitoring
+      - session_replay
+    filters:
+      ignore_errors:
+        - "ResizeObserver loop limit exceeded"
+        - "Network request failed"
+        - "Script error."
+      ignore_transactions:
+        - "/health"
+        - "/favicon.ico"
+
+  # Application Performance Monitoring - DataDog/New Relic
+  apm:
+    enabled: true
+    service_name: "visionday-frontend"
+    environment: "${NODE_ENV}"
+    version: "${VITE_APP_VERSION}"
+    traces:
+      sample_rate: 0.1
+      max_spans: 1000
+    metrics:
+      enabled: true
+      custom_metrics:
+        - name: "user_interactions"
+          type: "counter"
+        - name: "page_load_time"
+          type: "histogram"
+        - name: "api_response_time"
+          type: "histogram"
+
+  # Real User Monitoring (RUM)
+  rum:
+    enabled: true
+    sample_rate: 0.2
+    session_tracking: true
+    core_web_vitals: true
+    user_interactions: true
+    custom_events: true
+    privacy:
+      mask_inputs: true
+      mask_sensitive_data: true
+
+  # Uptime Monitoring
+  uptime:
+    enabled: true
+    endpoints:
+      - name: "homepage"
+        url: "https://visionday.app"
+        method: "GET"
+        expected_status: 200
+        timeout: 30
+        interval: 60 # seconds
+        locations: ["us-east", "eu-west", "asia-pacific"]
+
+      - name: "api_health"
+        url: "https://api.visionday.app/health"
+        method: "GET"
+        expected_status: 200
+        timeout: 15
+        interval: 30
+
+      - name: "authentication"
+        url: "https://visionday.app/login"
+        method: "GET"
+        expected_status: 200
+        timeout: 30
+        interval: 120
+
+# Core Web Vitals Monitoring
+performance:
+  core_web_vitals:
+    enabled: true
+    thresholds:
+      lcp: # Largest Contentful Paint
+        good: 2500
+        poor: 4000
+        unit: "ms"
+      fid: # First Input Delay
+        good: 100
+        poor: 300
+        unit: "ms"
+      cls: # Cumulative Layout Shift
+        good: 0.1
+        poor: 0.25
+        unit: "score"
+      fcp: # First Contentful Paint
+        good: 1800
+        poor: 3000
+        unit: "ms"
+      ttfb: # Time to First Byte
+        good: 800
+        poor: 1800
+        unit: "ms"
+
+  # Custom Performance Metrics
+  custom_metrics:
+    time_to_interactive:
+      enabled: true
+      threshold: 5000
+    react_render_time:
+      enabled: true
+      threshold: 100
+    api_response_time:
+      enabled: true
+      threshold: 2000
+    bundle_size:
+      enabled: true
+      threshold: 500000 # 500KB gzipped
+
+# Alerting Configuration
+alerting:
+  # Alert Channels
+  channels:
+    slack:
+      enabled: true
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#alerts"
+      username: "VisionDay Monitor"
+      icon_emoji: ":warning:"
+
+    email:
+      enabled: true
+      smtp_host: "${SMTP_HOST}"
+      smtp_port: 587
+      smtp_user: "${SMTP_USER}"
+      smtp_password: "${SMTP_PASSWORD}"
+      from: "alerts@visionday.app"
+      to: ["dev-team@visionday.app", "ops@visionday.app"]
+
+    pagerduty:
+      enabled: false
+      integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+      severity: "critical"
+
+    webhook:
+      enabled: true
+      url: "${ALERT_WEBHOOK_URL}"
+      method: "POST"
+      headers:
+        Authorization: "Bearer ${WEBHOOK_TOKEN}"
+
+  # Alert Rules
+  rules:
+    # System Health Alerts
+    - name: "system_unhealthy"
+      condition: "health_status == 'unhealthy'"
+      severity: "critical"
+      channels: ["slack", "email", "pagerduty"]
+      cooldown: 300 # 5 minutes
+      message: "🚨 CRITICAL: System is unhealthy - immediate attention required"
+
+    - name: "high_error_rate"
+      condition: "error_rate > 5%" # 5% error rate
+      time_window: "5m"
+      severity: "high"
+      channels: ["slack", "email"]
+      cooldown: 600 # 10 minutes
+      message: "⚠️ HIGH: Error rate above threshold (${error_rate}%)"
+
+    - name: "slow_response_time"
+      condition: "avg_response_time > 2000" # 2 seconds
+      time_window: "10m"
+      severity: "medium"
+      channels: ["slack"]
+      cooldown: 900 # 15 minutes
+      message: "🐌 MEDIUM: Average response time is slow (${avg_response_time}ms)"
+
+    - name: "poor_core_web_vitals"
+      condition: "lcp > 4000 OR cls > 0.25 OR fid > 300"
+      time_window: "15m"
+      severity: "medium"
+      channels: ["slack"]
+      cooldown: 1800 # 30 minutes
+      message: "📊 MEDIUM: Core Web Vitals are poor - user experience affected"
+
+    - name: "high_memory_usage"
+      condition: "memory_usage > 80%"
+      time_window: "5m"
+      severity: "medium"
+      channels: ["slack"]
+      cooldown: 600
+      message: "💾 MEDIUM: High memory usage detected (${memory_usage}%)"
+
+  # Alert Escalation
+  escalation:
+    enabled: true
+    levels:
+      - level: 1
+        after: "5m" # If not acknowledged after 5 minutes
+        channels: ["email"]
+      - level: 2
+        after: "15m" # If not acknowledged after 15 minutes
+        channels: ["pagerduty"]
+      - level: 3
+        after: "30m" # If not acknowledged after 30 minutes
+        channels: ["webhook"] # External escalation
+
+# Logging Configuration
+logging:
+  level: "info" # debug, info, warn, error
+  structured: true
+  format: "json"
+
+  # Log Aggregation
+  aggregation:
+    enabled: true
+    service: "datadog" # datadog, elk, splunk, cloudwatch
+    api_key: "${LOGGING_API_KEY}"
+    tags:
+      - "environment:${NODE_ENV}"
+      - "service:visionday-frontend"
+      - "version:${VITE_APP_VERSION}"
+
+  # Log Sampling
+  sampling:
+    enabled: true
+    rate: 0.1 # Sample 10% of logs in production
+    critical_always: true # Always log critical/error logs
+
+# Dashboard Configuration
+dashboards:
+  # Real-time Operations Dashboard
+  operations:
+    title: "VisionDay - Operations Dashboard"
+    widgets:
+      - type: "system_health"
+        title: "System Health Overview"
+        size: "medium"
+      - type: "core_web_vitals"
+        title: "Core Web Vitals"
+        size: "large"
+      - type: "error_rate"
+        title: "Error Rate Trend"
+        size: "medium"
+        time_range: "1h"
+      - type: "active_users"
+        title: "Active Users"
+        size: "small"
+      - type: "api_performance"
+        title: "API Performance"
+        size: "medium"
+        time_range: "24h"
+
+  # Business Metrics Dashboard
+  business:
+    title: "VisionDay - Business Metrics"
+    widgets:
+      - type: "user_engagement"
+        title: "User Engagement"
+        size: "large"
+        time_range: "7d"
+      - type: "feature_usage"
+        title: "Feature Usage"
+        size: "medium"
+      - type: "conversion_funnel"
+        title: "User Conversion Funnel"
+        size: "large"
+      - type: "retention_rate"
+        title: "User Retention"
+        size: "medium"
+        time_range: "30d"
+
+# Security Monitoring
+security:
+  enabled: true
+
+  # Security Events
+  events:
+    - name: "failed_login_attempts"
+      threshold: 5
+      time_window: "5m"
+      action: "alert"
+    - name: "suspicious_api_calls"
+      pattern: "high_frequency_requests"
+      threshold: 100
+      time_window: "1m"
+      action: "block_and_alert"
+    - name: "sql_injection_attempts"
+      pattern: "malicious_sql_patterns"
+      action: "block_and_alert"
+
+  # Rate Limiting Monitoring
+  rate_limiting:
+    enabled: true
+    global_threshold: 1000 # requests per minute
+    per_user_threshold: 60 # requests per minute
+    per_ip_threshold: 300 # requests per minute
+
+  # Content Security Policy Violations
+  csp_monitoring:
+    enabled: true
+    report_uri: "/api/csp-report"
+    alert_on_violation: true
+
+# Feature Flags Integration
+feature_flags:
+  enabled: true
+  service: "launchdarkly" # launchdarkly, split, flagsmith
+  sdk_key: "${FEATURE_FLAGS_SDK_KEY}"
+
+  # Monitoring for feature flag changes
+  monitoring:
+    track_flag_evaluations: true
+    track_flag_changes: true
+    alert_on_flag_errors: true
+
+# A/B Testing Integration
+ab_testing:
+  enabled: true
+  service: "optimizely" # optimizely, google_optimize, vwo
+  project_id: "${AB_TESTING_PROJECT_ID}"
+
+  # Monitoring for A/B tests
+  monitoring:
+    track_experiment_exposures: true
+    track_conversions: true
+    statistical_significance: 95 # percent
+
+# Data Retention Policies
+retention:
+  # Raw event data
+  events:
+    performance_metrics: "90d"
+    error_logs: "180d"
+    user_interactions: "30d"
+    security_events: "365d"
+
+  # Aggregated data
+  aggregations:
+    hourly: "30d"
+    daily: "365d"
+    weekly: "730d" # 2 years
+    monthly: "1095d" # 3 years
+
+# Compliance and Privacy
+privacy:
+  # GDPR compliance
+  gdpr:
+    enabled: true
+    anonymize_ip: true
+    respect_dnt: true # Do Not Track
+    data_retention_limit: "24m" # 24 months
+
+  # Data masking
+  masking:
+    pii_fields: ["email", "phone", "address"]
+    sensitive_data: ["password", "token", "key"]
+    credit_card_numbers: true
+
+  # Consent management
+  consent:
+    required: true
+    granular_consent: true
+    opt_out_available: true
+
+# Environment-specific overrides
+environments:
+  development:
+    logging:
+      level: "debug"
+      sampling:
+        enabled: false
+    alerting:
+      enabled: false
+    performance:
+      thresholds:
+        # Relaxed thresholds for development
+        lcp:
+          good: 5000
+          poor: 8000
+
+  staging:
+    alerting:
+      channels:
+        slack:
+          channel: "#staging-alerts"
+      rules:
+        # Reduced alert sensitivity for staging
+        - name: "high_error_rate"
+          condition: "error_rate > 10%"
+
+  production:
+    # Use default configuration (defined above)
+    # All monitoring and alerting enabled with strict thresholds

@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/utils/toast";
 import { 
   Search,
   Calendar,
@@ -44,7 +44,6 @@ export const ClientPortalIndex = () => {
     budget: "",
     timeline: ""
   });
-  const { toast } = useToast();
 
   // Mock data - esto se conectará a Supabase después
   const client = {
@@ -172,20 +171,13 @@ export const ClientPortalIndex = () => {
 
   const handleProjectProposalSubmit = () => {
     if (!projectProposal.name.trim() || !projectProposal.description.trim()) {
-      toast({
-        title: "Error",
-        description: "Por favor completa los campos requeridos",
-        variant: "destructive"
-      });
+      showError("Por favor completa los campos requeridos");
       return;
     }
 
     // TODO: Enviar propuesta a Supabase
     
-    toast({
-      title: "Propuesta enviada",
-      description: "Tu propuesta de proyecto ha sido enviada para revisión",
-    });
+    showSuccess("Propuesta enviada: Tu propuesta de proyecto ha sido enviada para revisión");
 
     setProjectProposalOpen(false);
     setProjectProposal({

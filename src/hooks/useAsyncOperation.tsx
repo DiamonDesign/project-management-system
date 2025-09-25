@@ -36,42 +36,47 @@ export function useAsyncOperation<T>(
   });
 
   const execute = useCallback(
-    async (retryCount = 0): Promise<T | null> => {
+    async (): Promise<T | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      try {
-        const result = await operation();
-        setState({
-          data: result,
-          loading: false,
-          error: null,
-          lastFetch: new Date(),
-        });
-        onSuccess?.();
-        return result;
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
-        
-        // Retry logic
-        if (retryCount < retries) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          return execute(retryCount + 1);
-        }
+      // Simple iterative retry (avoid recursion and stack overflow)
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const result = await operation();
+          setState({
+            data: result,
+            loading: false,
+            error: null,
+            lastFetch: new Date(),
+          });
+          onSuccess?.();
+          return result;
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error('Unknown error');
 
-        // Final error state
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: err,
-        }));
+          // If not the last attempt, wait and retry
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            continue;
+          }
 
-        if (showErrorToast) {
-          showError(`Error: ${err.message}`);
+          // Final error state after all retries failed
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: err,
+          }));
+
+          if (showErrorToast) {
+            showError(`Error: ${err.message}`);
+          }
+
+          onError?.(err);
+          return null;
         }
-        
-        onError?.(err);
-        return null;
       }
+
+      return null; // Should never reach here
     },
     [operation, retries, retryDelay, onError, onSuccess, showErrorToast]
   );

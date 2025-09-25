@@ -35,7 +35,7 @@ const Analytics: React.FC = () => {
 
   // Calculate KPIs
   const kpis = React.useMemo(() => {
-    const allTasks = projects.flatMap(p => p.tasks);
+    const allTasks = projects.flatMap(p => p.tasks || []);
     
     const totalProjects = projects.length;
     const activeProjects = projects.filter(p => p.status === 'in-progress').length;
@@ -340,7 +340,7 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {['high', 'medium', 'low'].map(priority => {
-                    const tasks = projects.flatMap(p => p.tasks).filter(t => 
+                    const tasks = projects.flatMap(p => p.tasks || []).filter(t => 
                       (t.priority || 'medium') === priority
                     );
                     const completed = tasks.filter(t => t.status === 'completed').length;

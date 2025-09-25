@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
@@ -35,6 +35,9 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   const { user, isLoading: isLoadingSession } = useSession();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
+
+  // AbortController for request cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
   
 
   const fetchClients = useCallback(async () => {
@@ -44,45 +47,63 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setIsLoadingClients(true);
-    
-    const { data, error } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching clients:", error);
-      showError("Error al cargar los clientes.");
-      setClients([]);
-      setIsLoadingClients(false);
-      return;
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
 
+    abortControllerRef.current = new AbortController();
+
     try {
+      setIsLoadingClients(true);
+
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .abortSignal(abortControllerRef.current.signal);
+
+      if (error) {
+        throw error;
+      }
 
       const clientsWithNotes = (data as Array<Record<string, unknown>>).map((client) => ({
         ...client,
         notes: Array.isArray(client.notes) ? client.notes : [],
       }));
-      
+
       setClients(clientsWithNotes as Client[]);
-    } catch (error) {
-      console.error("Error processing clients data:", error);
-      showError("Error al procesar los datos de clientes.");
+
+    } catch (error: unknown) {
+      // Handle AbortError silently (request was cancelled)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      console.error("Error fetching clients:", error);
+      showError("Error al cargar los clientes.");
       setClients([]);
     } finally {
-      // Always ensure loading is set to false
       setIsLoadingClients(false);
     }
   }, [user]);
 
+  // Effect to fetch clients when session loading completes
   useEffect(() => {
     if (!isLoadingSession) {
       fetchClients();
     }
   }, [isLoadingSession, fetchClients]);
+
+  // Cleanup: Abort requests when component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const addClient = useCallback(async (clientData: z.infer<typeof ClientFormSchema>) => {
     if (!user?.id) {
@@ -101,11 +122,13 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
         cif: clientData.cif || null,
       };
       
+      const controller = new AbortController();
       const { data, error } = await supabase
         .from("clients")
         .insert(newClient)
         .select()
-        .single();
+        .single()
+        .abortSignal(controller.signal);
 
       if (error) {
         throw error;
@@ -127,11 +150,13 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
+      const controller = new AbortController();
       const { error } = await supabase
         .from("clients")
         .update(updatedFields)
         .eq("id", clientId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
@@ -145,6 +170,7 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       showError("Error al actualizar el cliente: " + errorMessage);
       console.error("Error updating client:", error);
+      throw error; // Re-propagate for caller to handle
     }
   }, [user, setClients]);
 
@@ -154,11 +180,13 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
+      const controller = new AbortController();
       const { error } = await supabase
         .from("clients")
         .delete()
         .eq("id", clientId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
@@ -168,6 +196,7 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       showError("Error al eliminar el cliente: " + errorMessage);
       console.error("Error deleting client:", error);
+      throw error; // Re-propagate for caller to handle
     }
   }, [user, setClients]);
 

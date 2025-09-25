@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ComponentErrorBoundary } from './ErrorBoundary';
 import {
   CommandDialog,
   CommandEmpty,
@@ -142,7 +143,8 @@ export const SearchCommand = ({ open, onOpenChange }: SearchCommandProps) => {
   }, [handleSelect]);
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <ComponentErrorBoundary>
+      <CommandDialog open={open} onOpenChange={onOpenChange}>
       <div className="flex flex-col max-h-[80vh]">
         {/* Header with Search Input */}
         <div className="flex items-center border-b px-3">
@@ -350,6 +352,7 @@ export const SearchCommand = ({ open, onOpenChange }: SearchCommandProps) => {
           )}
         </div>
       </div>
-    </CommandDialog>
+      </CommandDialog>
+    </ComponentErrorBoundary>
   );
 };

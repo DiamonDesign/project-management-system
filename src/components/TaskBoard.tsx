@@ -13,11 +13,14 @@ import {
   MouseSensor,
   useDroppable,
 } from '@dnd-kit/core';
+import { ComponentErrorBoundary } from './ErrorBoundary';
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Task, useProjectContext } from '@/context/ProjectContext';
+import { Task } from '@/types/shared';
+import { useProjectContext } from '@/context/ProjectContext';
+import { useTaskContext } from '@/context/TaskContext';
 import { TaskCard } from '@/components/TaskCard';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -137,7 +140,7 @@ const DroppableColumn = ({
 };
 
 export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoardProps) => {
-  const { deleteTaskFromProject, updateTaskStatus, updateTask } = useProjectContext();
+  const { deleteTask, updateTaskStatus, updateTask } = useTaskContext();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Configure sensors for better touch and mouse interactions
@@ -161,16 +164,16 @@ export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoar
   );
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTaskFromProject(projectId, taskId);
+    deleteTask(taskId);
   };
 
   const handleEditTask = (taskId: string, updatedFields: Partial<Task>) => {
-    updateTask(projectId, taskId, updatedFields);
+    updateTask(taskId, updatedFields);
     showSuccess("Tarea actualizada.");
   };
 
   const handleUpdateTaskStatus = (pId: string, taskId: string, newStatus: Task['status']) => {
-    updateTaskStatus(projectId, taskId, newStatus);
+    updateTaskStatus(taskId, newStatus);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -220,13 +223,14 @@ export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoar
   const activeTask = activeId ? tasks.find(task => task.id === activeId) : null;
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
+    <ComponentErrorBoundary>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
       <div className={cn(
         layout === 'kanban'
           ? "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 auto-rows-fr"
@@ -284,6 +288,7 @@ export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoar
           />
         )}
       </DragOverlay>
-    </DndContext>
+      </DndContext>
+    </ComponentErrorBoundary>
   );
 };

@@ -23,7 +23,8 @@ interface AddPageDialogProps {
 }
 
 export const AddPageDialog = ({ projectId, isOpen, onClose }: AddPageDialogProps) => {
-  const { addPageToProject } = useProjectContext();
+  // TODO: Implement PageContext when separating page functionality
+  // const { addPageToProject } = useProjectContext();
   const [title, setTitle] = useState("");
   const [selectedType, setSelectedType] = useState<PageType>('general');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -87,8 +88,10 @@ export const AddPageDialog = ({ projectId, isOpen, onClose }: AddPageDialogProps
         tags: tags.filter(tag => tag.trim() !== ""),
       };
 
-      await addPageToProject(projectId, pageData);
-      showSuccess("Página creada exitosamente");
+      // TODO: Implement PageContext when separating page functionality
+      // await addPageToProject(projectId, pageData);
+      console.log("Page creation temporarily disabled - implement PageContext");
+      showSuccess("Funcionalidad de páginas temporalmente deshabilitada");
       handleClose();
     } catch (error) {
       console.error("Error creating page:", error);

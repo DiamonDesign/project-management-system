@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/useSession";
 import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
+import { useTaskContext } from "@/context/TaskContext";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -37,13 +38,14 @@ export const Sidebar = ({ isMobile = false, onClose, onOpenSearch }: SidebarProp
 
   const { projects, archivedProjects } = useProjectContext();
   const { clients } = useClientContext();
+  const { tasks } = useTaskContext();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   // Calculate stats for badges
-  const activeProjects = projects.filter(p => p.status === 'in-progress').length;
-  const pendingTasks = projects.flatMap(p => p.tasks.filter(t => t.status !== 'completed')).length;
-  const totalClients = clients.length;
-  const archivedCount = archivedProjects.length;
+  const activeProjects = projects?.filter(p => p.status === 'in-progress').length || 0;
+  const pendingTasks = tasks?.filter(t => t.status !== 'completed').length || 0;
+  const totalClients = clients?.length || 0;
+  const archivedCount = archivedProjects?.length || 0;
   
   const navItems = [
     {

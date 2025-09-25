@@ -19,7 +19,7 @@ import {
   Flag,
   MoreHorizontal
 } from "lucide-react";
-import { Task } from "@/context/ProjectContext";
+import { Task } from "@/types/shared";
 import { showError } from "@/utils/toast";
 import {
   Select,

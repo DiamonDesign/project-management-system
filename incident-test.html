@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Recovery Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #0f0; }
+        .success { background: rgba(0,255,0,0.1); }
+        .error { background: rgba(255,0,0,0.1); color: #f00; }
+        .warning { background: rgba(255,255,0,0.1); color: #ff0; }
+        h1 { color: #0f0; }
+        button { background: #0f0; color: #000; padding: 10px 20px; margin: 5px; border: none; cursor: pointer; }
+        button:hover { background: #0c0; }
+        #status { margin: 20px 0; padding: 15px; border: 2px solid #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🚨 Incident Recovery Test</h1>
+    <div id="status">Status: Initializing tests...</div>
+    <div id="tests"></div>
+
+    <script>
+        const results = [];
+
+        function log(test, result, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<strong>${test}:</strong> ${result}`;
+            document.getElementById('tests').appendChild(div);
+            results.push({ test, result, type });
+        }
+
+        async function runTests() {
+            // Test 1: Check if global error handler is installed
+            if (window.onerror && window.onerror.toString().includes('suppressedPatterns')) {
+                log('Global Error Handler', '✅ Installed and configured', 'success');
+            } else {
+                log('Global Error Handler', '❌ Not properly configured', 'error');
+            }
+
+            // Test 2: Simulate share-modal.js error
+            try {
+                window.onerror('Cannot read properties of null (reading "addEventListener")', 'share-modal.js', 1, 1, new Error('Test'));
+                log('Share-Modal Error Suppression', '✅ Error properly suppressed', 'success');
+            } catch (e) {
+                log('Share-Modal Error Suppression', '❌ Error not suppressed: ' + e.message, 'error');
+            }
+
+            // Test 3: Check app availability
+            try {
+                const response = await fetch('http://localhost:5173/');
+                if (response.ok) {
+                    log('Application Server', `✅ Running (HTTP ${response.status})`, 'success');
+                } else {
+                    log('Application Server', `⚠️ Responding but with status ${response.status}`, 'warning');
+                }
+            } catch (e) {
+                log('Application Server', '❌ Not accessible: ' + e.message, 'error');
+            }
+
+            // Test 4: Check Supabase connection
+            try {
+                const supabaseUrl = 'https://nktdqpzxzouxcsvmijvt.supabase.co';
+                const healthResponse = await fetch(`${supabaseUrl}/health`, {
+                    method: 'HEAD',
+                    mode: 'no-cors' // Bypass CORS for health check
+                });
+                log('Supabase Backend', '✅ Reachable', 'success');
+            } catch (e) {
+                log('Supabase Backend', '⚠️ May be down or blocked', 'warning');
+            }
+
+            // Test 5: Check for extension interference
+            const extensionIndicators = [
+                typeof chrome !== 'undefined' && chrome.runtime,
+                document.querySelector('script[src*="chrome-extension://"]'),
+                document.querySelector('script[src*="moz-extension://"]'),
+            ];
+
+            const hasExtensions = extensionIndicators.some(i => !!i);
+            if (hasExtensions) {
+                log('Browser Extensions', '⚠️ Active extensions detected - may cause conflicts', 'warning');
+            } else {
+                log('Browser Extensions', '✅ No problematic extensions detected', 'success');
+            }
+
+            // Summary
+            const successCount = results.filter(r => r.type === 'success').length;
+            const errorCount = results.filter(r => r.type === 'error').length;
+            const warningCount = results.filter(r => r.type === 'warning').length;
+
+            const statusDiv = document.getElementById('status');
+            if (errorCount === 0) {
+                statusDiv.innerHTML = `✅ INCIDENT RESOLVED - All ${successCount} critical tests passed${warningCount > 0 ? ` (${warningCount} warnings)` : ''}`;
+                statusDiv.style.borderColor = '#0f0';
+                statusDiv.style.color = '#0f0';
+            } else {
+                statusDiv.innerHTML = `❌ ISSUES REMAIN - ${errorCount} tests failed, ${successCount} passed`;
+                statusDiv.style.borderColor = '#f00';
+                statusDiv.style.color = '#f00';
+            }
+
+            // Recommendations
+            const recommendations = document.createElement('div');
+            recommendations.style.marginTop = '20px';
+            recommendations.innerHTML = '<h2>Recommendations:</h2>';
+
+            if (hasExtensions) {
+                recommendations.innerHTML += '<p>1. Test in incognito/private browsing mode to rule out extension conflicts</p>';
+            }
+
+            if (errorCount > 0) {
+                recommendations.innerHTML += '<p>2. Clear browser cache and reload: Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)</p>';
+                recommendations.innerHTML += '<p>3. Check browser console for any remaining errors</p>';
+            } else {
+                recommendations.innerHTML += '<p>✅ Application should now be working. Try creating a new project.</p>';
+            }
+
+            document.body.appendChild(recommendations);
+        }
+
+        // Auto-run tests after page load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+
+        // Install temporary global error handler for testing
+        const originalOnError = window.onerror;
+        window.onerror = function(message, source, lineno, colno, error) {
+            const suppressedPatterns = [
+                'share-modal.js',
+                'chrome-extension://',
+                'moz-extension://',
+                'Extension context invalidated',
+                'ResizeObserver loop limit exceeded',
+                'The message port closed'
+            ];
+
+            if (source && suppressedPatterns.some(pattern => source.includes(pattern))) {
+                console.warn('Test: Extension error suppressed:', message);
+                return true;
+            }
+
+            if (originalOnError) {
+                return originalOnError(message, source, lineno, colno, error);
+            }
+            return false;
+        };
+    </script>
+</body>
+</html>

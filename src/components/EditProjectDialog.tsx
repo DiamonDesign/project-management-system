@@ -78,6 +78,7 @@ export const EditProjectDialog = ({ project, onUpdateProject }: EditProjectDialo
     } catch (error) {
       showError("Error al actualizar el proyecto.");
       console.error("Error updating project:", error);
+      throw error; // Re-propagate error for caller to handle
     }
   };
 

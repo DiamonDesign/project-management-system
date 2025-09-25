@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { isValidDate, safeToDate } from "@/lib/utils";
-import type { Project, Task } from "@/context/ProjectContext";
+import type { Project, Task } from "@/types/shared";
 
 // Raw database interfaces for type safety
 interface RawProjectFromDB {

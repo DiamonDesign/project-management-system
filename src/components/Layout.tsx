@@ -137,7 +137,13 @@ export const Layout = () => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => signOut()}
+                      onClick={async () => {
+                        try {
+                          await signOut();
+                        } catch (error) {
+                          console.error('Error during signOut:', error);
+                        }
+                      }}
                       disabled={isSigningOut}
                       className="text-destructive focus:text-destructive"
                     >

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createProtectedFetch, logProtectionStatus } from "@/lib/api-protection";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -24,4 +25,14 @@ if (!supabaseAnonKey.startsWith('eyJ')) {
   throw new Error("VITE_SUPABASE_ANON_KEY does not appear to be a valid JWT");
 }
 
-export const supabase = createClient(supabaseUrl.trim(), supabaseAnonKey.trim());
+// Initialize API protection for Supabase
+const protectedFetch = createProtectedFetch();
+
+// Log protection status in development
+logProtectionStatus();
+
+export const supabase = createClient(supabaseUrl.trim(), supabaseAnonKey.trim(), {
+  global: {
+    fetch: protectedFetch,
+  },
+});

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Task } from '@/context/ProjectContext';
+import { Task } from '@/types/shared';
 import { TaskCard } from '@/components/TaskCard';
 import { VirtualTaskList } from '@/components/VirtualList';
 // Note: This component may need updating if drag & drop is required

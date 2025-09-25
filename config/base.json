@@ -1,0 +1,105 @@
+{
+  "version": "1.0.0",
+  "app": {
+    "name": "VisionDay",
+    "port": 5173,
+    "debug": false,
+    "logLevel": "info",
+    "apiTimeout": 10000,
+    "cors": {
+      "origins": ["http://localhost:3000", "http://localhost:5173"],
+      "credentials": true,
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    }
+  },
+  "database": {
+    "name": "visionday",
+    "ssl": false,
+    "poolSize": 10,
+    "timeout": 5000
+  },
+  "security": {
+    "jwtSecret": "${SECRET:JWT_SECRET}",
+    "encryptionKey": "${SECRET:ENCRYPTION_KEY}",
+    "sessionTimeout": 3600,
+    "rateLimiting": {
+      "enabled": true,
+      "windowMs": 900000,
+      "maxRequests": 100
+    },
+    "csp": {
+      "enabled": true,
+      "policies": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: https:",
+        "font-src": "'self' https://fonts.gstatic.com",
+        "connect-src": "'self' https://*.supabase.co wss://*.supabase.co",
+        "frame-ancestors": "'none'",
+        "form-action": "'self'",
+        "upgrade-insecure-requests": ""
+      }
+    }
+  },
+  "services": {
+    "supabase": {
+      "url": "${SECRET:SUPABASE_URL}",
+      "anonKey": "${SECRET:SUPABASE_ANON_KEY}",
+      "serviceKey": "${SECRET:SUPABASE_SERVICE_KEY}"
+    },
+    "sentry": {
+      "dsn": "${SECRET:SENTRY_DSN}",
+      "environment": "development",
+      "sampleRate": 1.0
+    },
+    "monitoring": {
+      "enabled": false,
+      "endpoint": "${SECRET:MONITORING_ENDPOINT}",
+      "apiKey": "${SECRET:MONITORING_API_KEY}"
+    },
+    "email": {
+      "provider": "sendgrid",
+      "apiKey": "${SECRET:EMAIL_API_KEY}",
+      "from": "noreply@visionday.app",
+      "replyTo": "support@visionday.app"
+    }
+  },
+  "features": {
+    "analytics": true,
+    "notifications": true,
+    "collaboration": true,
+    "advancedReports": false,
+    "aiAssistant": false,
+    "apiV2": false
+  },
+  "performance": {
+    "caching": {
+      "enabled": false,
+      "ttl": 3600,
+      "maxSize": 104857600
+    },
+    "compression": {
+      "enabled": false,
+      "level": 6,
+      "threshold": 1024
+    },
+    "cdn": {
+      "enabled": false,
+      "baseUrl": "",
+      "regions": ["us-east-1"]
+    }
+  },
+  "deployment": {
+    "strategy": "rolling",
+    "healthCheck": {
+      "enabled": true,
+      "endpoint": "/health",
+      "timeout": 5000
+    },
+    "rollback": {
+      "enabled": true,
+      "threshold": 0.05
+    }
+  }
+}

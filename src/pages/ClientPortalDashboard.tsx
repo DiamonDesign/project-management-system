@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Briefcase, CheckCircle, Clock, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Project, Task } from "@/context/ProjectContext"; // Reutilizar interfaces de ProjectContext
+import { Project, Task } from "@/types/shared"; // Reutilizar interfaces de shared types
 import { showSuccess, showError } from "@/utils/toast";
 import type { AppError } from "@/types";
+import { logger } from '@/lib/logger';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -80,7 +81,7 @@ const ClientPortalDashboard = () => {
         .single();
 
       if (clientError && process.env.NODE_ENV === 'development') {
-        console.error("Error fetching client name:", clientError);
+        logger.error('Client', 'Error fetching client name', clientError);
       }
       if (clientData) setClientName(clientData.name);
 
@@ -102,7 +103,7 @@ const ClientPortalDashboard = () => {
       const appError = error as AppError;
       showError("Error al cargar tus proyectos: " + appError.message);
       if (process.env.NODE_ENV === 'development') {
-        console.error("Error fetching client projects:", error);
+        logger.error('Client', 'Error fetching client projects', error);
       }
       setClientProjects([]);
     } finally {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { ComponentErrorBoundary } from "./ErrorBoundary";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,8 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <ComponentErrorBoundary>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Añadir Nuevo Proyecto</DialogTitle>
@@ -260,6 +262,7 @@ export const AddProjectDialog = ({ onAddProject, open, onOpenChange }: AddProjec
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </ComponentErrorBoundary>
   );
 };

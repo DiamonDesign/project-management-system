@@ -1,0 +1,586 @@
+# Kubernetes Blue-Green Deployment Configuration
+# Zero-downtime deployment strategy with Kubernetes services and ingress
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: visionday
+  labels:
+    name: visionday
+    environment: production
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: visionday-config
+  namespace: visionday
+  labels:
+    app: visionday
+    component: config
+data:
+  NODE_ENV: "production"
+  VITE_API_PROTECTION: "true"
+  # Add other non-sensitive configuration here
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: visionday-secrets
+  namespace: visionday
+  labels:
+    app: visionday
+    component: secrets
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual encoded secrets
+  VITE_SUPABASE_URL: <base64-encoded-supabase-url>
+  VITE_SUPABASE_ANON_KEY: <base64-encoded-supabase-anon-key>
+  SENTRY_DSN: <base64-encoded-sentry-dsn>
+
+---
+# Blue Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: visionday-blue
+  namespace: visionday
+  labels:
+    app: visionday
+    slot: blue
+    component: application
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: visionday
+      slot: blue
+  template:
+    metadata:
+      labels:
+        app: visionday
+        slot: blue
+        component: application
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: visionday
+        image: visionday:blue-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: DEPLOYMENT_SLOT
+          value: "blue"
+        - name: DEPLOYMENT_ID
+          value: "blue-latest"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        envFrom:
+        - configMapRef:
+            name: visionday-config
+        - secretRef:
+            name: visionday-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      terminationGracePeriodSeconds: 30
+
+---
+# Green Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: visionday-green
+  namespace: visionday
+  labels:
+    app: visionday
+    slot: green
+    component: application
+spec:
+  replicas: 0  # Initially scaled to 0 (inactive)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: visionday
+      slot: green
+  template:
+    metadata:
+      labels:
+        app: visionday
+        slot: green
+        component: application
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: visionday
+        image: visionday:green-latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: DEPLOYMENT_SLOT
+          value: "green"
+        - name: DEPLOYMENT_ID
+          value: "green-latest"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        envFrom:
+        - configMapRef:
+            name: visionday-config
+        - secretRef:
+            name: visionday-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      terminationGracePeriodSeconds: 30
+
+---
+# Blue Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: visionday-blue
+  namespace: visionday
+  labels:
+    app: visionday
+    slot: blue
+    component: service
+spec:
+  selector:
+    app: visionday
+    slot: blue
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Green Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: visionday-green
+  namespace: visionday
+  labels:
+    app: visionday
+    slot: green
+    component: service
+spec:
+  selector:
+    app: visionday
+    slot: green
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Active Service (switches between blue/green)
+apiVersion: v1
+kind: Service
+metadata:
+  name: visionday-active
+  namespace: visionday
+  labels:
+    app: visionday
+    component: active-service
+  annotations:
+    active-slot: "blue"  # This annotation tracks the active slot
+spec:
+  selector:
+    app: visionday
+    slot: blue  # Initially points to blue
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Ingress Controller Configuration
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: visionday-ingress
+  namespace: visionday
+  labels:
+    app: visionday
+    component: ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/custom-http-errors: "404,503"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+    # Blue-Green deployment annotations
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Active-Slot: blue";
+      more_set_headers "X-Deployment-Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)";
+
+spec:
+  tls:
+  - hosts:
+    - visionday.app
+    - www.visionday.app
+    secretName: visionday-tls
+  rules:
+  - host: visionday.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: visionday-active
+            port:
+              number: 80
+  - host: www.visionday.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: visionday-active
+            port:
+              number: 80
+
+---
+# Canary Ingress for gradual rollouts
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: visionday-canary
+  namespace: visionday
+  labels:
+    app: visionday
+    component: canary-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "0"  # Initially 0% traffic
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary-Deployment"
+    nginx.ingress.kubernetes.io/canary-by-cookie: "canary"
+spec:
+  tls:
+  - hosts:
+    - visionday.app
+    secretName: visionday-tls
+  rules:
+  - host: visionday.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: visionday-green  # Points to the new deployment
+            port:
+              number: 80
+
+---
+# Horizontal Pod Autoscaler for Blue
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: visionday-blue-hpa
+  namespace: visionday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: visionday-blue
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Horizontal Pod Autoscaler for Green
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: visionday-green-hpa
+  namespace: visionday
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: visionday-green
+  minReplicas: 0  # Initially scaled to 0
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Pod Disruption Budget for Blue
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: visionday-blue-pdb
+  namespace: visionday
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: visionday
+      slot: blue
+
+---
+# Pod Disruption Budget for Green
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: visionday-green-pdb
+  namespace: visionday
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: visionday
+      slot: green
+
+---
+# ServiceMonitor for Prometheus monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: visionday-monitor
+  namespace: visionday
+  labels:
+    app: visionday
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: visionday
+      component: service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# NetworkPolicy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: visionday-network-policy
+  namespace: visionday
+spec:
+  podSelector:
+    matchLabels:
+      app: visionday
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 80
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to: []  # Allow all outbound traffic
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+
+---
+# Job for database migrations (runs before deployment switch)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: visionday-migration-${DEPLOYMENT_ID}
+  namespace: visionday
+  labels:
+    app: visionday
+    component: migration
+    deployment-id: ${DEPLOYMENT_ID}
+spec:
+  ttlSecondsAfterFinished: 300  # Clean up after 5 minutes
+  template:
+    metadata:
+      labels:
+        app: visionday
+        component: migration
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migration
+        image: visionday:migration-${DEPLOYMENT_ID}
+        command: ["/bin/sh"]
+        args: ["-c", "echo 'Running database migrations...'; sleep 5; echo 'Migrations completed successfully'"]
+        envFrom:
+        - configMapRef:
+            name: visionday-config
+        - secretRef:
+            name: visionday-secrets
+      backoffLimit: 3

@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Pencil, Save, X } from "lucide-react";
 import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
-import { SecureTipTapEditor } from './SecureTipTapEditor';
 import { Input } from "@/components/ui/input";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
 import { ComponentErrorBoundary } from "./ErrorBoundary";
+
+// Lazy load the heavy TipTap editor to reduce bundle size
+const SecureTipTapEditor = React.lazy(() => import('./SecureTipTapEditor').then(module => ({ default: module.SecureTipTapEditor })));
 
 interface NotesSectionProps {
   projectId: string;
@@ -159,12 +161,14 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
         <div className="mb-4">
           <Input placeholder="Título de la nota (opcional)" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} className="mb-2" />
           <ComponentErrorBoundary>
-            <SecureTipTapEditor
-              value={newNoteContent}
-              onChange={setNewNoteContent}
-              placeholder="Añadir nueva nota..."
-              className="mb-2 h-32"
-            />
+            <Suspense fallback={<div className="flex items-center justify-center p-4"><div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>}>
+              <SecureTipTapEditor
+                value={newNoteContent}
+                onChange={setNewNoteContent}
+                placeholder="Añadir nueva nota..."
+                className="mb-2 h-32"
+              />
+            </Suspense>
           </ComponentErrorBoundary>
           <Button onClick={handleAddNote} className="w-full mt-2">Añadir Nota</Button>
         </div>
@@ -179,12 +183,14 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                     <>
                       <Input placeholder="Título de la nota (opcional)" value={editingNoteTitle} onChange={(e) => setEditingNoteTitle(e.target.value)} className="mb-2" />
                       <ComponentErrorBoundary>
-                        <SecureTipTapEditor
-                          value={editingNoteContent}
-                          onChange={setEditingNoteContent}
-                          placeholder="Contenido de la nota..."
-                          className="mb-2 h-32"
-                        />
+                        <Suspense fallback={<div className="flex items-center justify-center p-4"><div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>}>
+                          <SecureTipTapEditor
+                            value={editingNoteContent}
+                            onChange={setEditingNoteContent}
+                            placeholder="Contenido de la nota..."
+                            className="mb-2 h-32"
+                          />
+                        </Suspense>
                       </ComponentErrorBoundary>
                     </>
                   ) : (

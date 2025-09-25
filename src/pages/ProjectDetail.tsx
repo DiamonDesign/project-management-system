@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trash2, User, Calendar, Folder, CheckCircle2, Clock, Plus } from "lucide-react";
-import { NotesSection } from "@/components/NotesSection";
-import { PagesSection } from "@/components/PagesSection";
+// Lazy load heavy editor components to reduce bundle size
+const NotesSection = React.lazy(() => import("@/components/NotesSection").then(module => ({ default: module.NotesSection })));
+const PagesSection = React.lazy(() => import("@/components/PagesSection").then(module => ({ default: module.PagesSection })));
 import { TaskBoard } from "@/components/TaskBoard";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -340,7 +341,9 @@ const ProjectDetail = () => {
 
           <TabsContent value="documentation" className="space-y-6">
             <div className="max-w-6xl mx-auto space-y-6">
-              <PagesSection projectId={project.id} />
+              <Suspense fallback={<div className="flex items-center justify-center p-8"><div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>}>
+                <PagesSection projectId={project.id} />
+              </Suspense>
 
               {/* Legacy Notes Section - Only show if there are existing notes */}
               {hasLegacyNotes && (
@@ -357,7 +360,9 @@ const ProjectDetail = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <NotesSection projectId={project.id} />
+                    <Suspense fallback={<div className="flex items-center justify-center p-4"><div className="animate-spin h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full"></div></div>}>
+                      <NotesSection projectId={project.id} />
+                    </Suspense>
                   </CardContent>
                 </Card>
               )}

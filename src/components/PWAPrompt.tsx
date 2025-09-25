@@ -14,7 +14,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { showSuccess, showError, showInfo } from '@/utils/toast';
 
 interface PWAPromptProps {
   className?: string;
@@ -30,7 +30,6 @@ export const PWAPrompt: React.FC<PWAPromptProps> = ({ className }) => {
     reloadApp 
   } = usePWA();
   
-  const { toast } = useToast();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [installPromptDismissed, setInstallPromptDismissed] = useState(false);
 
@@ -51,28 +50,17 @@ export const PWAPrompt: React.FC<PWAPromptProps> = ({ className }) => {
       await promptInstall();
       setShowInstallPrompt(false);
       
-      toast({
-        title: "¡Aplicación instalada!",
-        description: "Visionday está ahora disponible en tu dispositivo",
-        duration: 5000,
-      });
+      showSuccess("¡Aplicación instalada! Visionday está ahora disponible en tu dispositivo", { duration: 5000 });
     } catch (error) {
       console.error('Install failed:', error);
-      toast({
-        title: "Error de instalación",
-        description: "No se pudo instalar la aplicación",
-        variant: "destructive"
-      });
+      showError("Error de instalación: No se pudo instalar la aplicación");
     }
   };
 
   // Handle update
   const handleUpdate = () => {
     reloadApp();
-    toast({
-      title: "Actualizando...",
-      description: "La aplicación se está actualizando",
-    });
+    showInfo("Actualizando... La aplicación se está actualizando");
   };
 
   // Dismiss install prompt

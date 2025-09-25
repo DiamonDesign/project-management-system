@@ -8,6 +8,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { AppError, DatabaseError } from '@/types';
 import { Session } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export interface AuthValidationResult {
   isValid: boolean;
@@ -30,7 +31,7 @@ export async function validateAndRefreshSession(): Promise<AuthValidationResult>
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
-      console.error('[AuthValidator] Session retrieval error:', sessionError);
+      logger.auth('Session retrieval error', sessionError);
       return {
         isValid: false,
         session: null,
@@ -40,7 +41,7 @@ export async function validateAndRefreshSession(): Promise<AuthValidationResult>
     }
     
     if (!session) {
-      console.warn('[AuthValidator] No session found');
+      logger.auth('No session found');
       return {
         isValid: false,
         session: null,
@@ -68,7 +69,7 @@ export async function validateAndRefreshSession(): Promise<AuthValidationResult>
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError) {
-        console.error('[AuthValidator] Token refresh failed:', refreshError);
+        logger.auth('Token refresh failed', refreshError);
         return {
           isValid: false,
           session: null,
@@ -78,7 +79,7 @@ export async function validateAndRefreshSession(): Promise<AuthValidationResult>
       }
       
       if (!refreshData.session) {
-        console.error('[AuthValidator] Token refresh returned no session');
+        logger.auth('Token refresh returned no session');
         return {
           isValid: false,
           session: null,

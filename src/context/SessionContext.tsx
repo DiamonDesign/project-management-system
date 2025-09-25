@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "@/utils/toast";
 import type { AppError } from "@/types";
+import { safeCastToProfileResult, safeCastToAppError } from "@/lib/validation-schemas";
+import { logger } from "@/lib/logger";
 import {
   AuthUser,
   AuthSession,
@@ -45,7 +47,21 @@ interface SessionContextType {
   initials: string;
 }
 
-export const SessionContext = createContext<SessionContextType | undefined>(undefined);
+// Create context with safe default value to prevent undefined context errors
+const defaultContextValue: SessionContextType = {
+  session: null,
+  user: null,
+  isLoading: true,
+  isSigningOut: false,
+  signOut: async () => { throw new Error('SessionContext not initialized'); },
+  signIn: async () => { throw new Error('SessionContext not initialized'); },
+  hasPermission: () => false,
+  hasRole: () => false,
+  displayName: '',
+  initials: '',
+};
+
+export const SessionContext = createContext<SessionContextType>(defaultContextValue);
 
 export const SessionContextProvider = ({ children }: { children: ReactNode }) => {
   // Enhanced state with type safety
@@ -55,16 +71,17 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  
-  // Emergency fallback flag
-  const [emergencyMode, setEmergencyMode] = useState(false);
+
+  // Error handling
+  const [authError, setAuthError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
   // Enhanced user enhancement with role and permissions
   const enhanceUser = async (baseUser: User): Promise<AuthUser | null> => {
     try {
-      
+      logger.session(`Enhancing user: ${baseUser.id}`);
+
       // Add timeout to database query to prevent hanging
       const profileQuery = supabase
         .from("profiles")
@@ -72,48 +89,24 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         .eq("id", baseUser.id)
         .single();
 
-      // Race condition: query vs timeout
+      // Wrap query with timeout promise for more reliable handling
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile query timeout')), 3000); // Reduced to 3s for faster recovery
+      });
+
       const profileResult = await Promise.race([
         profileQuery,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile query timeout')), 2000)
-        )
-      ]);
+        timeoutPromise
+      ]) as any; // Race between query and timeout
 
-      const { data: profileData, error: profileError } = profileResult as {
-        data: {
-          id?: string;
-          role?: string;
-          full_name?: string;
-          first_name?: string;
-          last_name?: string;
-          avatar_url?: string;
-          company?: string;
-          bio?: string;
-          website?: string;
-          location?: string;
-          phone?: string;
-          timezone?: string;
-          last_login?: string;
-          login_count?: number;
-          client_portal_access?: {
-            is_client?: boolean;
-            assigned_projects?: string[];
-            invite_token?: string;
-            invited_by?: string;
-            invited_at?: string;
-          };
-        } | null;
-        error: {
-          code?: string;
-          message?: string;
-        } | null;
-      } | null;
-      
-      
-      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = not found
-        if (process.env.NODE_ENV === 'development') {
-          console.error("Error fetching profile:", profileError);
+      const validatedResult = safeCastToProfileResult(profileResult);
+      const { data: profileData, error: profileError } = validatedResult;
+
+      if (profileError) {
+        logger.session("Profile query error:", profileError);
+        // Don't throw on profile errors - continue with basic user
+        if (profileError.code !== 'PGRST116') { // PGRST116 = not found
+          logger.session("Non-404 profile error, continuing with basic user");
         }
       }
       
@@ -150,65 +143,96 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         } : undefined
       };
       
+      logger.session(`User enhancement successful for: ${baseUser.id}`);
       return enhancedUser;
     } catch (error) {
-      console.error('[SessionContext] User enhancement failed:', error);
-      
-      // If enhancement fails, return a basic user without profile data
-      if (error instanceof Error && error.message.includes('timeout')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[SessionContext] Using basic user due to timeout');
+      logger.session('User enhancement failed', error);
+
+      // Always return a basic user on failure to prevent blocking
+      logger.session('Using basic user due to enhancement failure');
+      return {
+        id: baseUser.id,
+        email: baseUser.email || '',
+        role: 'freelancer' as UserRole,
+        metadata: {
+          created_at: baseUser.created_at,
+          email_verified: !!baseUser.email_confirmed_at,
+          two_factor_enabled: false
         }
-        return {
-          id: baseUser.id,
-          email: baseUser.email || '',
-          role: 'freelancer',
-          metadata: {
-            created_at: baseUser.created_at,
-            email_verified: !!baseUser.email_confirmed_at,
-            two_factor_enabled: false
-          }
-        };
+      };
+    }
+  };
+
+  // Retry session initialization function
+  const retryInitialization = async () => {
+    try {
+      setAuthError(null);
+      setIsLoading(true);
+
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        logger.session('Session retry error', error);
+        setAuthError('Error al inicializar la sesión. Por favor, inténtalo de nuevo.');
+        setIsLoading(false);
+        return;
       }
-      
-      return null;
+
+      if (currentSession && currentSession.user) {
+        const enhancedUser = await enhanceUser(currentSession.user);
+
+        if (enhancedUser) {
+          const authSession: AuthSession = {
+            user: enhancedUser,
+            access_token: currentSession.access_token,
+            refresh_token: currentSession.refresh_token,
+            expires_at: currentSession.expires_at,
+            token_type: 'bearer'
+          };
+          setSession(authSession);
+          setUser(enhancedUser);
+        } else {
+          logger.session('User enhancement failed during retry');
+          setAuthError('Error al procesar la información del usuario.');
+        }
+      } else {
+        logger.session('No session found during retry');
+      }
+
+      setIsLoading(false);
+    } catch (error) {
+      logger.session('Session retry failed', error);
+      setAuthError('Error inesperado al reintentar. Por favor, recarga la página.');
+      setIsLoading(false);
     }
   };
 
   // Initialize session on mount
   useEffect(() => {
     let isMounted = true;
-    
+    let initialCheckCompleted = false;
+
     const initializeSession = async () => {
       try {
-        
-        // Set a timeout to prevent infinite loading
-        const sessionTimeout = setTimeout(() => {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('[SessionContext] Session initialization timeout - activating emergency mode');
-          }
+        logger.session('Starting session initialization');
+
+        // Get current session immediately
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          logger.session('Session fetch error:', sessionError);
           if (isMounted) {
-            setEmergencyMode(true);
             setSession(null);
             setUser(null);
             setIsLoading(false);
           }
-        }, 10000); // 10 second timeout - more conservative
-        
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('[SessionContext] Session initialization error:', error);
-          }
-          clearTimeout(sessionTimeout);
-          setIsLoading(false);
           return;
         }
-        
+
         if (currentSession && currentSession.user && isMounted) {
+          logger.session('Found existing session, enhancing user');
           const enhancedUser = await enhanceUser(currentSession.user);
-          
+
           if (enhancedUser && isMounted) {
             const authSession: AuthSession = {
               user: enhancedUser,
@@ -219,39 +243,45 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             };
             setSession(authSession);
             setUser(enhancedUser);
-          } else if (isMounted) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('[SessionContext] User enhancement failed, continuing without enhanced data');
-            }
           }
         } else {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[SessionContext] No current session found');
+          logger.session('No existing session found');
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
           }
         }
-        
-        clearTimeout(sessionTimeout);
-        if (isMounted) {
-          setIsLoading(false);
-        }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[SessionContext] Session initialization failed:', error);
-        }
+        logger.session('Session initialization error:', error);
+      } finally {
         if (isMounted) {
+          initialCheckCompleted = true;
           setIsLoading(false);
+          logger.session('Session initialization completed');
         }
       }
     };
-    
+
+    // Set a safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      if (!initialCheckCompleted && isMounted) {
+        logger.session('Session initialization timeout - forcing completion');
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second safety timeout
+
+    // Initialize session immediately
     initializeSession();
-    
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        
+        logger.session('Auth state change:', event);
+
         if (!isMounted) return;
-        
+
         try {
           if (event === 'SIGNED_IN' && currentSession) {
             const enhancedUser = await enhanceUser(currentSession.user);
@@ -265,12 +295,19 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
               };
               setSession(authSession);
               setUser(enhancedUser);
-              
-              // Navigate based on user type
-              if (enhancedUser.client_portal_access?.is_client) {
-                navigate('/client-portal/dashboard');
-              } else {
-                navigate('/dashboard');
+
+              // Navigate based on user type (but only if not already on a protected route)
+              const currentPath = window.location.pathname;
+              const isProtectedRoute = ['/dashboard', '/projects', '/clients', '/tasks', '/profile', '/analytics'].some(route =>
+                currentPath.startsWith(route)
+              );
+
+              if (!isProtectedRoute) {
+                if (enhancedUser.client_portal_access?.is_client) {
+                  navigate('/client-portal/dashboard');
+                } else {
+                  navigate('/projects');
+                }
               }
             }
           } else if (event === 'SIGNED_OUT') {
@@ -278,7 +315,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             setUser(null);
             navigate('/login');
           } else if (event === 'TOKEN_REFRESHED' && currentSession) {
-            // Solo actualizar tokens, mantener datos de usuario existentes
+            // Update tokens only, keep existing user data
             if (isMounted && session) {
               const updatedSession: AuthSession = {
                 ...session,
@@ -290,22 +327,17 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             }
           }
         } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('[SessionContext] Auth state change error:', error);
-          }
-        } finally {
-          if (isMounted) {
-            setIsLoading(false);
-          }
+          logger.session('Auth state change error', error);
         }
       }
     );
-    
+
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate]); // Removed session from dependencies to prevent circular updates
 
   // Sign in method
   const signIn = async (email: string, password: string): Promise<void> => {
@@ -323,9 +355,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       showSuccess("¡Bienvenido! Has iniciado sesión correctamente.");
     } catch (error: unknown) {
       const appError = error as AppError;
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error signing in:", error);
-      }
+      logger.session('Error signing in', error);
       const message = appError?.message || "Error al iniciar sesión";
       showError(message);
       throw error;
@@ -343,25 +373,26 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       setSession(null);
       setUser(null);
 
-      // Then attempt Supabase signOut with timeout
-      const signOutPromise = supabase.auth.signOut();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('SignOut timeout')), 3000)
-      );
-
+      // Then attempt Supabase signOut with simple timeout (non-blocking)
       try {
-        const { error } = await Promise.race([signOutPromise, timeoutPromise]) as { error: any };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const { error } = await supabase.auth.signOut();
+        clearTimeout(timeoutId);
+
         if (error) {
-          console.warn("SignOut API error (non-critical):", error);
+          logger.session('SignOut API error (non-critical)', error);
         }
-      } catch (timeoutError) {
-        console.warn("SignOut timeout - continuing with navigation");
+      } catch (signOutError) {
+        // SignOut failed, but we already cleared local state, so continue
+        logger.session('SignOut failed - continuing with navigation', signOutError);
       }
 
       showSuccess("Has cerrado sesión correctamente.");
       navigate('/login');
     } catch (error: unknown) {
-      console.error("SignOut error:", error);
+      logger.session('SignOut error', error);
       // State already cleared, just navigate
       navigate('/login');
       showSuccess("Sesión cerrada.");
@@ -407,19 +438,17 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
   return (
     <SessionContext.Provider value={contextValue}>
-      {emergencyMode && (
-        <div className="bg-amber-100 border-b border-amber-200 p-2 text-center">
-          <p className="text-sm text-amber-800">
-            ⚠️ Modo de emergencia activo - Algunas funciones pueden estar limitadas. 
+      {authError && (
+        <div className="bg-red-50 border-b border-red-200 p-3 text-center">
+          <p className="text-sm text-red-800">
+            ⚠️ {authError}
             <button
               onClick={() => {
-                setEmergencyMode(false);
-                setIsLoading(true);
-                initializeSession();
+                retryInitialization();
               }}
-              className="underline ml-1 hover:no-underline"
+              className="ml-3 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
             >
-              Reintentar conexión
+              Reintentar
             </button>
           </p>
         </div>

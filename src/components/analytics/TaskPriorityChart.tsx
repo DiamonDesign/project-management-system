@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Project, Task } from '@/context/ProjectContext';
+import { Project, Task } from '@/types/shared';
 import type { RechartsTooltipProps } from '@/types';
 
 interface TaskPriorityChartProps {

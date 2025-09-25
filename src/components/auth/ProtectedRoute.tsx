@@ -39,8 +39,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { session, isLoading } = useSession();
 
-  // Show loading state while session is being determined
-  if (isLoading) {
+  // Show loading state while session is being determined (but only if no session exists)
+  if (isLoading && !session) {
     return (
       <div className="min-h-screen bg-gradient-bg flex items-center justify-center">
         <ContentLoading lines={3} showHeader />

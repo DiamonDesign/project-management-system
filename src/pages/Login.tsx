@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { supabase } from "@/integrations/supabase/client";
 import type { AuthError } from "@supabase/supabase-js";
+import { logger } from '@/lib/logger';
 
 const Login = () => {
   const { session, isLoading } = useSession();
@@ -16,7 +17,7 @@ const Login = () => {
   };
 
   const handleAuthError = (error: AuthError) => {
-    console.error('Authentication error:', error);
+    logger.auth('Authentication error', error);
   };
 
   if (isLoading) {
@@ -39,7 +40,6 @@ const Login = () => {
         </h1>
 
         <AuthForm
-          redirectTo={getRedirectUrl()}
           onError={handleAuthError}
         />
       </div>

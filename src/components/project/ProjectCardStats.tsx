@@ -1,6 +1,6 @@
 import React from "react";
 import { Progress } from "@/components/ui/progress";
-import { Task } from "@/context/ProjectContext";
+import { Task } from "@/types/shared";
 import {
   Calendar,
   Clock,
