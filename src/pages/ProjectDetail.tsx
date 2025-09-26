@@ -2,6 +2,7 @@ import React, { useState, Suspense } from "react";
 import { useParams, Link, useNavigate, Navigate } from "react-router-dom";
 import { useProjectContext } from "@/context/ProjectContext";
 import { useClientContext } from "@/context/ClientContext";
+import { useProjectDetail } from "@/hooks/useProjectDetail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,9 @@ const getStatusLabel = (status: string) => {
 const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; project: Project }) => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
+  // FIXED: Calculate projectTasks within this component scope
+  const projectTasks = project.tasks || [];
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Task Header */}
@@ -97,7 +101,7 @@ const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; projec
 
       {/* Unified TaskBoard Component */}
       <TaskBoard
-        tasks={project.tasks}
+        tasks={projectTasks}
         projectId={projectId}
         layout="kanban"
         containerClass="max-w-6xl mx-auto"
@@ -109,12 +113,12 @@ const ProjectTasksWrapper = ({ projectId, project }: { projectId: string; projec
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { projects, updateProject, deleteProject, isLoadingProjects } = useProjectContext();
+  const { updateProject, deleteProject } = useProjectContext();
   const { clients, isLoadingClients } = useClientContext();
   const { session, isLoading: isLoadingSession } = useSession();
-  const project = projects.find((p) => p.id === id);
+  const { project, loading: isLoadingProject, error: projectError } = useProjectDetail(id);
 
-  if (isLoadingSession || isLoadingProjects || isLoadingClients) {
+  if (isLoadingSession || isLoadingProject || isLoadingClients) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <p className="text-lg text-gray-600 dark:text-gray-400">Cargando detalles del proyecto...</p>
@@ -135,6 +139,24 @@ const ProjectDetail = () => {
     }
   };
 
+  // Handle project loading error
+  if (projectError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+        <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold mb-4">Error al cargar el proyecto</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+            {projectError}
+          </p>
+          <Link to="/projects">
+            <Button>Volver a Proyectos</Button>
+          </Link>
+        </div>
+        <MadeWithDyad />
+      </div>
+    );
+  }
+
   if (!project) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
@@ -154,12 +176,16 @@ const ProjectDetail = () => {
 
   const assignedClient = project.client_id ? clients.find(c => c.id === project.client_id) : null;
 
-  const completedTasks = project.tasks.filter(task => task.status === 'completed').length;
-  const totalTasks = project.tasks.length;
+  // DEFENSIVE: Ensure tasks array exists (should always be array from useProjectDetail)
+  const projectTasks = project.tasks || [];
+  const completedTasks = projectTasks.filter(task => task.status === 'completed').length;
+  const totalTasks = projectTasks.length;
   const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // const totalPages = project.pages?.length || 0;
-  const totalNotes = project.notes?.length || 0;
+  // DEFENSIVE: Ensure optional arrays exist
+  const projectNotes = project.notes || [];
+  const projectPages = project.pages || [];
+  const totalNotes = projectNotes.length;
   const hasLegacyNotes = totalNotes > 0;
 
   // Calculate days until due date
