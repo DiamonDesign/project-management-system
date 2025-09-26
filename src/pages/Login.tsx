@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { useState, useEffect } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client-v2";
 import type { AuthError } from "@supabase/supabase-js";
 import { logger } from '@/lib/logger';
 
