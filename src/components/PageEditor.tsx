@@ -9,7 +9,7 @@ import { PAGE_TYPE_CONFIG, type Page, type PageType } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
 import { SecureTipTapEditor } from './SecureTipTapEditor';
-import { ComponentErrorBoundary } from "./ErrorBoundary/";
+import ErrorBoundary from "./ErrorBoundary";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -353,14 +353,14 @@ export const PageEditor = ({ projectId, page, onClose }: PageEditorProps) => {
       <Card className="min-h-[500px]">
         <CardContent className="p-6">
           {isEditing ? (
-            <ComponentErrorBoundary>
+            <ErrorBoundary>
               <SecureTipTapEditor
                 value={content}
                 onChange={setContent}
                 className="min-h-[400px]"
                 placeholder="Escribe el contenido de tu página..."
               />
-            </ComponentErrorBoundary>
+            </ErrorBoundary>
           ) : (
             <div 
               className="prose prose-sm max-w-none quill-content min-h-[400px]"

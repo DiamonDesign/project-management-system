@@ -3,7 +3,7 @@ import { Task, Project } from '@/types/shared';
 import { format, differenceInDays, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ComponentErrorBoundary } from './ErrorBoundary/';
+import ErrorBoundary from './ErrorBoundary';
 
 interface GanttChartProps {
   projects: Project[];
@@ -27,7 +27,7 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
   const totalDays = daysInChart.length;
 
   return (
-    <ComponentErrorBoundary>
+    <ErrorBoundary>
       <div className="overflow-x-auto relative">
         <div className="flex flex-col min-w-max">
         <div className="flex border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-background z-10">
@@ -86,6 +86,6 @@ export const GanttChart = ({ projects }: GanttChartProps) => {
         </div>
       </div>
       </div>
-    </ComponentErrorBoundary>
+    </ErrorBoundary>
   );
 };

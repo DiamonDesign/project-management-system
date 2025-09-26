@@ -13,7 +13,7 @@ import {
   MouseSensor,
   useDroppable,
 } from '@dnd-kit/core';
-import { ComponentErrorBoundary } from './ErrorBoundary/';
+import ErrorBoundary from './ErrorBoundary';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -223,7 +223,7 @@ export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoar
   const activeTask = activeId ? tasks.find(task => task.id === activeId) : null;
 
   return (
-    <ComponentErrorBoundary>
+    <ErrorBoundary>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -289,6 +289,6 @@ export const TaskBoard = ({ tasks, projectId, layout, containerClass }: TaskBoar
         )}
       </DragOverlay>
       </DndContext>
-    </ComponentErrorBoundary>
+    </ErrorBoundary>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComponentErrorBoundary } from "./ErrorBoundary/";
+import ErrorBoundary from "./ErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
@@ -272,7 +272,7 @@ const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onV
   }
 
   const cardContent = (
-    <ComponentErrorBoundary>
+    <ErrorBoundary>
       <Card
         hover
         interactive
@@ -419,7 +419,7 @@ const ProjectCardComponent = ({ project, variant = 'card', onEdit, onDelete, onV
       {/* Hover Glow Effect */}
       <div className="absolute inset-0 rounded-[inherit] bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       </Card>
-    </ComponentErrorBoundary>
+    </ErrorBoundary>
   );
 
   // Wrap with SwipeableCard on mobile, return regular card on desktop

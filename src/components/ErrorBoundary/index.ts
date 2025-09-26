@@ -5,3 +5,6 @@ export {
   ComponentErrorBoundary,
   useErrorHandler,
 } from './ErrorBoundary';
+
+// Default export for common usage
+export { ErrorBoundary as default } from './ErrorBoundary';

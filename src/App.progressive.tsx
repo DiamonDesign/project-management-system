@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
-import { ErrorBoundary, PageErrorBoundary } from "./components/ErrorBoundary";
+import { PageErrorBoundary } from "./components/ErrorBoundary/index";
+import ErrorBoundary from "./components/ErrorBoundary/index";
 
 // Progressive Loading System
 import { LoadingProvider } from "./context/LoadingContext";

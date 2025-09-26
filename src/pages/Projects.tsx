@@ -21,7 +21,6 @@ import { Toggle } from "@/components/ui/toggle";
 import { PROJECT_TYPE_CONFIG } from "@/types/index";
 
 const Projects = () => {
-  console.log('[Projects] Component rendering');
   const { projects, addProject, archiveProject, isLoadingProjects } = useProjectContext();
   const { clients, isLoadingClients } = useClientContext();
   const { session, isLoading: isLoadingSession } = useSession();
@@ -48,10 +47,7 @@ const Projects = () => {
     clients: clientsForFilters 
   });
 
-  console.log('[Projects] Loading states:', { isLoadingSession, isLoadingProjects, isLoadingClients });
-
   if (isLoadingSession || isLoadingProjects || isLoadingClients) {
-    console.log('[Projects] Showing skeleton loading');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <div className="space-y-4">
@@ -69,11 +65,8 @@ const Projects = () => {
   }
 
   if (!session) {
-    console.log('[Projects] No session, redirecting to login');
     return <Navigate to="/login" replace />;
   }
-
-  console.log('[Projects] Rendering main component');
 
   return (
     <div className="container mx-auto p-4 space-y-6">

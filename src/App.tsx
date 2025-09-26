@@ -8,7 +8,8 @@ import { TaskProvider } from "./context/TaskContext";
 import { SessionContextProvider } from "./context/SessionContext";
 import { ClientProvider } from "./context/ClientContext";
 import { Layout } from "./components/Layout";
-import { ErrorBoundary, PageErrorBoundary } from "./components/ErrorBoundary";
+import { PageErrorBoundary } from "./components/ErrorBoundary/index";
+import ErrorBoundary from "./components/ErrorBoundary/index";
 import { PageLoading } from "@/components/ui/loading";
 import { RequireAuth, ClientPortalRoute } from "@/components/auth/ProtectedRoute";
 import { useSession } from "@/hooks/useSession";
@@ -34,7 +35,6 @@ const ClientPortalInvite = React.lazy(() => import("./pages/ClientPortalInvite")
 const ClientPortalDashboard = React.lazy(() => import("./pages/ClientPortalDashboard"));
 const AuthCallback = React.lazy(() => import("./pages/AuthCallback"));
 const EnvCheck = React.lazy(() => import("./pages/EnvCheck"));
-const SupabaseTest = React.lazy(() => import("./pages/SupabaseTest"));
 
 // Query client with optimized configuration
 const queryClient = new QueryClient({
@@ -70,17 +70,12 @@ const LazyRoute = ({ children }: { children: React.ReactNode }) => (
 const DependentProviders = ({ children }: { children: React.ReactNode }) => {
   const { isLoading, session } = useSession();
 
-  console.log('[DependentProviders] isLoading:', isLoading, 'session:', !!session);
-
   // FIXED: Only show loading during initial auth determination
   // Show loading ONLY when we're still determining auth state (isLoading = true)
   // Once isLoading = false, we have a definitive answer: either session or no session
   if (isLoading) {
-    console.log('[DependentProviders] Showing PageLoading - determining auth state');
     return <PageLoading message="Verificando autenticación..." />;
   }
-
-  console.log('[DependentProviders] Auth state determined, rendering providers and children');
   return (
     <ProjectProvider>
       <TaskProvider>
@@ -169,9 +164,6 @@ const App = () => (
                 </Route>
                 <Route path="/env-check" element={
                   <LazyRoute><EnvCheck /></LazyRoute>
-                } />
-                <Route path="/supabase-test" element={
-                  <LazyRoute><SupabaseTest /></LazyRoute>
                 } />
                 <Route path="*" element={
                   <LazyRoute><NotFound /></LazyRoute>

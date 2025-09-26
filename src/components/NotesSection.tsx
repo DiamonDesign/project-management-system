@@ -7,7 +7,7 @@ import { useProjectContext } from "@/context/ProjectContext";
 import { showSuccess, showError } from "@/utils/toast";
 import { Input } from "@/components/ui/input";
 import { sanitizeHtml, validationSchemas } from "@/lib/security";
-import { ComponentErrorBoundary } from "./ErrorBoundary/";
+import ErrorBoundary from "./ErrorBoundary";
 
 // Lazy load the heavy TipTap editor to reduce bundle size
 const SecureTipTapEditor = React.lazy(() => import('./SecureTipTapEditor').then(module => ({ default: module.SecureTipTapEditor })));
@@ -160,7 +160,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
       <CardContent>
         <div className="mb-4">
           <Input placeholder="Título de la nota (opcional)" value={newNoteTitle} onChange={(e) => setNewNoteTitle(e.target.value)} className="mb-2" />
-          <ComponentErrorBoundary>
+          <ErrorBoundary>
             <Suspense fallback={<div className="flex items-center justify-center p-4"><div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>}>
               <SecureTipTapEditor
                 value={newNoteContent}
@@ -169,7 +169,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                 className="mb-2 h-32"
               />
             </Suspense>
-          </ComponentErrorBoundary>
+          </ErrorBoundary>
           <Button onClick={handleAddNote} className="w-full mt-2">Añadir Nota</Button>
         </div>
         {project.notes.length === 0 ? (
@@ -182,7 +182,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                   {editingNoteId === note.id ? (
                     <>
                       <Input placeholder="Título de la nota (opcional)" value={editingNoteTitle} onChange={(e) => setEditingNoteTitle(e.target.value)} className="mb-2" />
-                      <ComponentErrorBoundary>
+                      <ErrorBoundary>
                         <Suspense fallback={<div className="flex items-center justify-center p-4"><div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div></div>}>
                           <SecureTipTapEditor
                             value={editingNoteContent}
@@ -191,7 +191,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                             className="mb-2 h-32"
                           />
                         </Suspense>
-                      </ComponentErrorBoundary>
+                      </ErrorBoundary>
                     </>
                   ) : (
                     <>
@@ -223,7 +223,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                         </Button>
                       </>
                     ) : (
-                      <ComponentErrorBoundary>
+                      <ErrorBoundary>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -240,7 +240,7 @@ export const NotesSection = ({ projectId }: NotesSectionProps) => {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                      </ComponentErrorBoundary>
+                      </ErrorBoundary>
                     )}
                     <Button
                       variant="ghost"

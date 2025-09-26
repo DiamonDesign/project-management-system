@@ -5,33 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Visionday - Gestión de Proyectos</title>
     <meta name="description" content="Aplicación de gestión de proyectos para freelancers y consultores con funcionalidades offline" />
-    
+
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="background-color" content="#ffffff" />
     <meta name="display" content="standalone" />
     <meta name="orientation" content="portrait-primary" />
-    
+
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Visionday" />
     <link rel="apple-touch-icon" href="/favicon.ico" />
-    
+
     <!-- Microsoft PWA Meta Tags -->
     <meta name="msapplication-TileColor" content="#0f172a" />
     <meta name="msapplication-config" content="/browserconfig.xml" />
-    
+
     <!-- Security Meta Tags -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
-    <!-- Development CSP - Allow inline scripts for Vite HMR and PWA service worker -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' ; style-src 'self' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws://localhost:* http://localhost:* https://api.supabase.io wss://realtime.supabase.io https://*.supabase.co wss://*.supabase.co; media-src 'none'; object-src 'none'; worker-src 'self'; child-src 'none'; form-action 'self'; base-uri 'self';" />
-    
+    <!--
+      Adaptive CSP will be injected here by the Vite plugin
+      Environment-aware Content Security Policy for maximum security
+    -->
+
   </head>
 
   <body>
